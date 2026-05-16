@@ -1,4 +1,8 @@
-import { Scene, Vector3, FreeCamera, PointerEventTypes, Scalar } from "@babylonjs/core";
+import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
+import { PointerEventTypes } from "@babylonjs/core/Events/pointerEvents";
+import { Scalar } from "@babylonjs/core/Maths/math.scalar";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import type { Scene } from "@babylonjs/core/scene";
 import { SoundManager } from "../game/SoundManager";
 
 export class PlayerController {
@@ -195,11 +199,13 @@ export class PlayerController {
 
     private _setupPointerLock(): void {
         this._canvas.addEventListener("click", () => {
+            if (!this._canRequestPointerLock()) return;
             this._requestPointerLock();
         });
 
         this._scene.onPointerObservable.add((pointerInfo) => {
             if (pointerInfo.type === PointerEventTypes.POINTERDOWN) {
+                if (!this._canRequestPointerLock()) return;
                 this._requestPointerLock();
             }
         });
@@ -210,11 +216,13 @@ export class PlayerController {
 
             if (document.pointerLockElement === this._canvas) {
                 this._hasEnteredPointerLock = true;
+                this._camera.detachControl();
                 this._camera.attachControl(this._canvas, true);
                 if (escMenu) escMenu.style.display = "none";
                 craftingMenu?.classList.remove("active");
             } else if (this._hasEnteredPointerLock) {
-                this._camera.attachControl(this._canvas, true);
+                this._pressedKeys.clear();
+                this._camera.detachControl();
                 
                 // Only show pause menu if crafting menu is not open
                 const isCraftingOpen = craftingMenu && craftingMenu.classList.contains("active");
@@ -233,6 +241,7 @@ export class PlayerController {
 
     private _requestPointerLock(): void {
         if (document.pointerLockElement === this._canvas) return;
+        if (!this._canRequestPointerLock()) return;
 
         this._canvas.focus({ preventScroll: true });
         try {
@@ -245,6 +254,21 @@ export class PlayerController {
         } catch {
             this._camera.attachControl(this._canvas, true);
         }
+    }
+
+    private _canRequestPointerLock(): boolean {
+        const mainMenu = document.getElementById("mainMenu");
+        const escMenu = document.getElementById("escMenu");
+        const craftingMenu = document.getElementById("craftingMenu");
+        const victoryMenu = document.getElementById("victoryScreen");
+        const gameOverMenu = document.getElementById("gameOverScreen");
+
+        const isMainMenuOpen = mainMenu ? mainMenu.style.display !== "none" : false;
+        const isPauseOpen = escMenu ? escMenu.style.display === "flex" : false;
+        const isCraftingOpen = craftingMenu?.classList.contains("active") ?? false;
+        const isGameOver = (victoryMenu?.style.display === "flex") || (gameOverMenu?.style.display === "flex");
+
+        return !isMainMenuOpen && !isPauseOpen && !isCraftingOpen && !isGameOver;
     }
 
     public get camera(): FreeCamera {

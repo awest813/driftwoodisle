@@ -1,4 +1,11 @@
-import { Color3, Mesh, MeshBuilder, PointerEventTypes, Scene, StandardMaterial, Vector3 } from "@babylonjs/core";
+import { PointerEventTypes } from "@babylonjs/core/Events/pointerEvents";
+import "@babylonjs/core/Culling/ray";
+import { Color3 } from "@babylonjs/core/Maths/math.color";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
+import type { Scene } from "@babylonjs/core/scene";
 import { SoundManager } from "../game/SoundManager";
 
 type FishingState = "idle" | "waiting" | "bite";

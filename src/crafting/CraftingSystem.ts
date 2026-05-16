@@ -82,6 +82,8 @@ export class CraftingSystem {
             this._menuElement.classList.remove("active");
             this._isOpen = false;
             const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement | null;
+            if (!canvas || !this._canReturnToPointerLock()) return;
+
             canvas?.focus({ preventScroll: true });
             try {
                 const result = canvas?.requestPointerLock?.();
@@ -92,6 +94,19 @@ export class CraftingSystem {
                 // Browsers may reject pointer lock when closing from a keyboard shortcut.
             }
         }
+    }
+
+    private _canReturnToPointerLock(): boolean {
+        const mainMenu = document.getElementById("mainMenu");
+        const escMenu = document.getElementById("escMenu");
+        const victoryMenu = document.getElementById("victoryScreen");
+        const gameOverMenu = document.getElementById("gameOverScreen");
+
+        const isMainMenuOpen = mainMenu ? mainMenu.style.display !== "none" : false;
+        const isPauseOpen = escMenu ? escMenu.style.display === "flex" : false;
+        const isGameOver = (victoryMenu?.style.display === "flex") || (gameOverMenu?.style.display === "flex");
+
+        return !isMainMenuOpen && !isPauseOpen && !isGameOver;
     }
 
     private _hidePauseMenu(): void {

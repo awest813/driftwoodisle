@@ -1,4 +1,7 @@
-import { Scene, DirectionalLight, Color3, Vector3 } from "@babylonjs/core";
+import type { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
+import { Color3 } from "@babylonjs/core/Maths/math.color";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import type { Scene } from "@babylonjs/core/scene";
 
 export class DayNightCycle {
     private _scene: Scene;

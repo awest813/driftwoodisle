@@ -1,4 +1,4 @@
-import { Scene } from "@babylonjs/core";
+import type { Scene } from "@babylonjs/core/scene";
 
 type SoundCue =
     | "pickup"

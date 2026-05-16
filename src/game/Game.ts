@@ -1,5 +1,9 @@
-import { Engine, Scene, Color3, HemisphericLight, DirectionalLight, Vector3 } from "@babylonjs/core";
-import "@babylonjs/loaders";
+import { Engine } from "@babylonjs/core/Engines/engine";
+import { Scene } from "@babylonjs/core/scene";
+import { Color3 } from "@babylonjs/core/Maths/math.color";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
+import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 
 export class Game {
     private _canvas: HTMLCanvasElement;
@@ -13,10 +17,15 @@ export class Game {
     private _weather: any;
     private _fishing: any;
     private _worldPromise: Promise<void>;
+    private _isStarting: boolean = false;
 
     constructor(canvasId: string) {
         this._canvas = document.getElementById(canvasId) as HTMLCanvasElement;
-        this._engine = new Engine(this._canvas, true);
+        this._engine = new Engine(this._canvas, false, {
+            preserveDrawingBuffer: false,
+            stencil: true
+        }, false);
+        this._engine.setHardwareScalingLevel(Math.max(1, window.devicePixelRatio || 1));
         this._scene = new Scene(this._engine);
 
         this._worldPromise = Promise.resolve();
@@ -42,7 +51,10 @@ export class Game {
         // Setup world
         this._worldPromise = this._createPlaceholderWorld();
 
-        const { MeshBuilder, StandardMaterial, CubeTexture, Texture } = await import("@babylonjs/core");
+        const { MeshBuilder } = await import("@babylonjs/core/Meshes/meshBuilder");
+        const { StandardMaterial } = await import("@babylonjs/core/Materials/standardMaterial");
+        const { CubeTexture } = await import("@babylonjs/core/Materials/Textures/cubeTexture");
+        const { Texture } = await import("@babylonjs/core/Materials/Textures/texture");
         const skybox = MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, this._scene);
         skybox.infiniteDistance = true;
         skybox.isPickable = false;
@@ -80,42 +92,50 @@ export class Game {
     }
 
     private async _startGame(isLoad: boolean): Promise<void> {
-        // Wait for the world to finish generating so player doesn't fall
-        await this._worldPromise;
+        if (this._isStarting || this._playerController) return;
+        this._isStarting = true;
+        try {
+            // Wait for the world to finish generating so player doesn't fall
+            await this._worldPromise;
 
-        // Setup HUD and Stats
-        await this._setupSystems();
+            // Setup HUD and Stats
+            await this._setupSystems();
 
-        // Setup Player Controller
-        await this._setupPlayer();
+            // Setup Player Controller
+            await this._setupPlayer();
 
-        // Post Process & Graphics Polish
-        await this._setupRenderingPipeline();
+            // Setup ESC Menu
+            this._setupEscMenu();
 
-        // Setup ESC Menu
-        this._setupEscMenu();
+            // Setup Interaction System
+            await this._setupInteraction();
+            await this._setupFishing();
 
-        // Setup Interaction System
-        await this._setupInteraction();
-        await this._setupFishing();
+            const { SaveSystem } = await import("../save/SaveSystem");
+            if (isLoad && SaveSystem.hasSave()) {
+                SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera);
+                this._hud.showNotification("Game Loaded");
+            }
 
-        const { SaveSystem } = await import("../save/SaveSystem");
-        if (isLoad && SaveSystem.hasSave()) {
-            SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera);
-            this._hud.showNotification("Game Loaded");
+            const { SettingsManager } = await import("../save/SettingsManager");
+            SettingsManager.apply();
+
+            // Post processing is expensive on integrated GPUs, so load it only when enabled.
+            if (SettingsManager.settings.postProcessing) {
+                await this.enableHighQualityRendering();
+            }
+
+            // Setup Weather after settings so ambience inherits saved audio volume.
+            const { WeatherSystem } = await import("../world/WeatherSystem");
+            this._weather = new WeatherSystem(this._scene, this._stats);
+
+            // Handle death
+            window.addEventListener("playerDied", () => {
+                this._hud.showGameOver();
+            });
+        } finally {
+            this._isStarting = false;
         }
-
-        const { SettingsManager } = await import("../save/SettingsManager");
-        SettingsManager.apply();
-
-        // Setup Weather after settings so ambience inherits saved audio volume.
-        const { WeatherSystem } = await import("../world/WeatherSystem");
-        this._weather = new WeatherSystem(this._scene, this._stats);
-
-        // Handle death
-        window.addEventListener("playerDied", () => {
-            this._hud.showGameOver();
-        });
     }
 
     private _setupLights(): void {
@@ -132,17 +152,12 @@ export class Game {
         this._playerController = new PlayerController(this._scene, this._canvas, this._stats);
     }
 
-    private async _setupRenderingPipeline(): Promise<void> {
-        const camera = this._scene.activeCamera;
-        if (!camera || (window as any).defaultPipeline) return;
+    public async enableHighQualityRendering(): Promise<void> {
+        this._engine.setHardwareScalingLevel(1);
+    }
 
-        const { DefaultRenderingPipeline } = await import("@babylonjs/core/PostProcesses/RenderPipeline/Pipelines/defaultRenderingPipeline");
-        const pipeline = new DefaultRenderingPipeline("defaultPipeline", true, this._scene, [camera]);
-        pipeline.samples = 4;
-        pipeline.bloomEnabled = true;
-        pipeline.bloomThreshold = 0.8;
-        pipeline.bloomWeight = 0.3;
-        (window as any).defaultPipeline = pipeline;
+    public disableHighQualityRendering(): void {
+        this._engine.setHardwareScalingLevel(Math.max(1, window.devicePixelRatio || 1));
     }
 
     private async _setupInteraction(): Promise<void> {
@@ -196,15 +211,13 @@ export class Game {
         const exitBtn = document.getElementById("exitBtn");
 
         if (resumeBtn) resumeBtn.onclick = () => {
-            const craftingMenu = document.getElementById("craftingMenu");
-            craftingMenu?.classList.remove("active");
-            this._canvas.requestPointerLock();
+            this._resumeGameplay();
         };
         if (saveBtn) saveBtn.onclick = () => {
             import("../save/SaveSystem").then(({ SaveSystem }) => {
                 SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera);
                 this._hud.showNotification("Game Saved manually.");
-                this._canvas.requestPointerLock();
+                this._resumeGameplay();
             });
         };
         if (loadBtn) loadBtn.onclick = () => {
@@ -212,7 +225,7 @@ export class Game {
                 if (SaveSystem.hasSave()) {
                     SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera);
                     this._hud.showNotification("Game Loaded manually.");
-                    this._canvas.requestPointerLock();
+                    this._resumeGameplay();
                 } else {
                     this._hud.showNotification("No save found.");
                 }
@@ -227,6 +240,28 @@ export class Game {
 
     public get engine(): Engine {
         return this._engine;
+    }
+
+    private _resumeGameplay(): void {
+        const escMenu = document.getElementById("escMenu");
+        const craftingMenu = document.getElementById("craftingMenu");
+        if (escMenu) escMenu.style.display = "none";
+        craftingMenu?.classList.remove("active");
+        this._requestGameplayPointerLock();
+    }
+
+    private _requestGameplayPointerLock(): void {
+        this._canvas.focus({ preventScroll: true });
+        try {
+            const result = this._canvas.requestPointerLock?.();
+            if (result && typeof result.catch === "function") {
+                result.catch(() => {
+                    this._playerController?.camera?.attachControl(this._canvas, true);
+                });
+            }
+        } catch {
+            this._playerController?.camera?.attachControl(this._canvas, true);
+        }
     }
 
     private _exposeTestHooks(): void {

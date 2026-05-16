@@ -2,7 +2,8 @@ import { Inventory } from "../inventory/Inventory";
 import { PlayerStats } from "../player/PlayerStats";
 import type { Stats } from "../player/PlayerStats";
 import { DayNightCycle } from "../world/DayNightCycle";
-import { FreeCamera, Vector3 } from "@babylonjs/core";
+import type { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { ResourceType } from "../inventory/ItemTypes";
 
 export interface SaveData {

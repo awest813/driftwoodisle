@@ -3,9 +3,10 @@ import { SettingsManager } from "../save/SettingsManager";
 
 export class MainMenu {
     private _menuElement: HTMLElement | null;
-    private _onStart: (isLoad: boolean) => void;
+    private _onStart: (isLoad: boolean) => Promise<void> | void;
+    private _isStarting: boolean = false;
 
-    constructor(onStart: (isLoad: boolean) => void) {
+    constructor(onStart: (isLoad: boolean) => Promise<void> | void) {
         this._menuElement = document.getElementById("mainMenu");
         this._onStart = onStart;
 
@@ -42,7 +43,7 @@ export class MainMenu {
     }
 
     private _showScreen(id: string): void {
-        const pages = document.querySelectorAll(".journal-page");
+        const pages = this._menuElement?.querySelectorAll(".journal-page") ?? [];
         pages.forEach(p => (p as HTMLElement).style.display = "none");
         document.getElementById(id)!.style.display = "block";
     }
@@ -82,9 +83,11 @@ export class MainMenu {
         const sensRange = document.getElementById("sensRange") as HTMLInputElement;
         const volRange = document.getElementById("volRange") as HTMLInputElement;
         const fogRange = document.getElementById("fogRange") as HTMLInputElement;
+        const ppToggle = document.getElementById("ppToggle") as HTMLInputElement;
         document.getElementById("sensValue")!.innerText = sensRange.value;
         document.getElementById("volValue")!.innerText = `${volRange.value}%`;
-        document.getElementById("fogValue")!.innerText = fogRange.value;
+        document.getElementById("fogValue")!.innerText = `${fogRange.value}/10`;
+        document.getElementById("qualityValue")!.innerText = ppToggle.checked ? "Native" : "Low GPU";
     }
 
     private _saveSettings(): void {
@@ -96,10 +99,33 @@ export class MainMenu {
         });
     }
 
-    private _start(isLoad: boolean): void {
+    private async _start(isLoad: boolean): Promise<void> {
+        if (this._isStarting) return;
+        this._isStarting = true;
+        this._setStartingState(true);
+
         if (this._menuElement) {
             this._menuElement.style.display = "none";
         }
-        this._onStart(isLoad);
+        
+        try {
+            await this._onStart(isLoad);
+            this._setStartingState(false);
+        } catch (error) {
+            console.error("Failed to start game", error);
+            if (this._menuElement) this._menuElement.style.display = "flex";
+            this._setStartingState(false);
+            this._isStarting = false;
+        }
+    }
+
+    private _setStartingState(isStarting: boolean): void {
+        const buttons = document.querySelectorAll<HTMLButtonElement>("#menuContent #menuButtons button");
+        buttons.forEach(button => {
+            button.disabled = isStarting || (button.id === "loadGame" && !SaveSystem.hasSave());
+        });
+
+        const startBtn = document.getElementById("startGame") as HTMLButtonElement | null;
+        if (startBtn) startBtn.textContent = isStarting ? "Loading..." : "New Entry";
     }
 }

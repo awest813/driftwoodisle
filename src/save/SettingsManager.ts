@@ -10,7 +10,7 @@ export class SettingsManager {
         sensitivity: 2000,
         volume: 50,
         fogDensity: 5,
-        postProcessing: true
+        postProcessing: false
     };
 
     public static load(): GameSettings {
@@ -45,11 +45,12 @@ export class SettingsManager {
             game._playerController.camera.angularSensibility = this._settings.sensitivity;
         }
 
-        // Apply Post Processing
-        const pipeline = (window as any).defaultPipeline;
-        if (pipeline) {
-            pipeline.samples = this._settings.postProcessing ? 4 : 1;
-            pipeline.bloomEnabled = this._settings.postProcessing;
+        // Apply high quality rendering as a resolution toggle. Full post-processing was too costly
+        // and could render black on some low-end integrated GPUs.
+        if (this._settings.postProcessing) {
+            game.enableHighQualityRendering?.();
+        } else {
+            game.disableHighQualityRendering?.();
         }
 
         (window as any).soundManager?.setMasterVolume(this._settings.volume / 100);
@@ -70,7 +71,7 @@ export class SettingsManager {
             sensitivity: this._clamp(Math.round(settings.sensitivity ?? 2000), 100, 5000),
             volume: this._clamp(Math.round(settings.volume ?? 50), 0, 100),
             fogDensity: this._clamp(Math.round(settings.fogDensity ?? 5), 0, 10),
-            postProcessing: Boolean(settings.postProcessing ?? true)
+            postProcessing: Boolean(settings.postProcessing ?? false)
         };
     }
 

@@ -12,7 +12,7 @@
         <div id="menuContent" class="journal-page">
             <h1>DRIFTWOOD ISLE</h1>
             <p>A Survival Journal</p>
-            <div style="text-align: left; background: rgba(0,0,0,0.1); padding: 15px; margin: 15px 0; border: 1px dashed var(--leather); font-size: 0.9rem;">
+            <div class="controls-note">
                 <strong>Controls:</strong><br>
                 <b>WASD</b>: Move &nbsp;|&nbsp; <b>Mouse</b>: Look &nbsp;|&nbsp; <b>Shift</b>: Sprint<br>
                 <b>Click</b>: Interact &nbsp;|&nbsp; <b>Right Click Water</b>: Fish &nbsp;|&nbsp; <b>Tab/E</b>: Inventory & Crafting &nbsp;|&nbsp; <b>ESC</b>: Pause
@@ -28,25 +28,26 @@
         <div id="settingsMenu" class="journal-page" style="display:none">
             <h2>Settings</h2>
             <div class="setting-row">
-                <label>Sensitivity</label>
+                <label for="sensRange">Mouse Look</label>
                 <input type="range" id="sensRange" min="100" max="5000" value="2000">
                 <span id="sensValue" class="setting-value">2000</span>
             </div>
             <div class="setting-row">
-                <label>Volume</label>
+                <label for="volRange">Volume</label>
                 <input type="range" id="volRange" min="0" max="100" value="50">
                 <span id="volValue" class="setting-value">50%</span>
             </div>
             <div class="setting-row">
-                <label>Fog Density</label>
+                <label for="fogRange">Fog</label>
                 <input type="range" id="fogRange" min="0" max="10" value="5">
                 <span id="fogValue" class="setting-value">5</span>
             </div>
             <div class="setting-row">
-                <label>High Quality Graphics</label>
+                <label for="ppToggle">Sharp Render</label>
                 <input type="checkbox" id="ppToggle" checked>
-                <span class="setting-value">FX</span>
+                <span id="qualityValue" class="setting-value">Low GPU</span>
             </div>
+            <p class="settings-hint">Low GPU is recommended for 4 GB systems and Intel integrated graphics.</p>
             <button id="audioPreviewBtn" class="back-btn small-btn">Test Audio</button>
             <button id="closeSettings" class="back-btn">Back</button>
         </div>
@@ -64,7 +65,7 @@
     <div id="interactionPrompt"></div>
     
     <div id="hud">
-        <div id="timeTempUI" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); padding: 10px; border: 2px solid #5a3c22; font-family: 'Special Elite'; color: #e6d5c3; font-size: 1.2rem; pointer-events: none;">
+        <div id="timeTempUI">
             Day <span id="dayCount">1</span> | <span id="timeClock">08:00</span> | Temp: <span id="tempDisplay">37</span>°C
         </div>
         <div id="compass">
@@ -94,7 +95,7 @@
             </div>
             <div class="stat-row">
                 <span class="stat-icon" id="warmthIcon">☀️</span>
-                <div class="stat-bar-bg"><div id="warmthBar" class="stat-bar" style="background-color: #ff9900;"></div></div>
+                <div class="stat-bar-bg"><div id="warmthBar" class="stat-bar warmth"></div></div>
                 <span id="warmthVal" class="stat-val">100</span>
             </div>
         </div>
@@ -118,13 +119,13 @@
             <div class="inventory-layout">
                 <div class="inventory-panel">
                     <h3>Backpack</h3>
-                    <div id="inventoryGrid" class="recipe-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div id="inventoryGrid" class="recipe-grid inventory-grid">
                         <!-- Inventory items will be injected here -->
                     </div>
                 </div>
                 <div class="inventory-panel">
                     <h3>Crafting</h3>
-                    <div id="recipeList" class="recipe-grid" style="grid-template-columns: 1fr;">
+                    <div id="recipeList" class="recipe-grid">
                         <!-- Recipes will be injected here -->
                     </div>
                 </div>
@@ -136,7 +137,7 @@
     <div id="escMenu" class="overlay">
         <div class="overlay-content journal-page">
             <h2>Paused</h2>
-            <div id="menuButtons">
+            <div class="pause-buttons">
                 <button id="resumeBtn">Resume</button>
                 <button id="saveBtn">Save Game</button>
                 <button id="loadInGameBtn">Load Game</button>

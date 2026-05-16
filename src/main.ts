@@ -1,8 +1,8 @@
 import './style.css'
-import { Game } from './game/Game';
 
 // Initialize the game
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
+    const { Game } = await import('./game/Game');
     const game = new Game('renderCanvas');
 
     // For debugging
@@ -13,7 +13,7 @@ window.addEventListener('DOMContentLoaded', () => {
     fpsDiv.id = 'fpsCounter';
     document.body.appendChild(fpsDiv);
 
-    game.engine.runRenderLoop(() => {
+    game.scene.onAfterRenderObservable.add(() => {
         fpsDiv.innerText = `FPS: ${game.engine.getFps().toFixed()}`;
     });
 });
