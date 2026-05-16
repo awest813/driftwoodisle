@@ -87,7 +87,7 @@ export class MainMenu {
         document.getElementById("sensValue")!.innerText = sensRange.value;
         document.getElementById("volValue")!.innerText = `${volRange.value}%`;
         document.getElementById("fogValue")!.innerText = `${fogRange.value}/10`;
-        document.getElementById("qualityValue")!.innerText = ppToggle.checked ? "Native" : "Low GPU";
+        document.getElementById("qualityValue")!.innerText = ppToggle.checked ? "High" : "Low GPU";
     }
 
     private _saveSettings(): void {

@@ -54,11 +54,10 @@ export class DayNightCycle {
         const noonColor = new Color3(1, 1, 1);
         const nightColor = new Color3(0.05, 0.05, 0.2);
 
-        // Interpolate background/fog colors
+        // Interpolate background color; fog color is managed by WeatherSystem and SettingsManager
         const lerpFactor = Math.abs(y);
         const bgColor = Color3.Lerp(nightColor, isDay ? noonColor : nightColor, lerpFactor);
         this._scene.clearColor = bgColor.toColor4();
-        this._scene.fogColor = bgColor;
     }
 
     public get time(): number {

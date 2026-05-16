@@ -4,7 +4,6 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import { ProceduralTextures } from "./ProceduralTextures";
-import { CSG } from "@babylonjs/core/Meshes/csg";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { ParticleSystem } from "@babylonjs/core/Particles/particleSystem";
@@ -119,10 +118,10 @@ export class Island {
         base1.checkCollisions = true;
         base2.checkCollisions = true;
 
-        // Palm Grove (Middle level, grassy)
+        // Palm Grove (Middle level, grassy) — decorative layer, no collision needed
         const grove = MeshBuilder.CreateCylinder("grove", { height: 0.02, diameter: 70 }, this._scene);
         grove.position = new Vector3(25, 0.01, 10);
-        grove.checkCollisions = true;
+        grove.checkCollisions = false;
         const grassMat = new StandardMaterial("grass_mat", this._scene);
         grassMat.diffuseTexture = this._cloneTiled(this._grassTex, 15, 15);
         grassMat.specularColor = new Color3(0, 0, 0);
@@ -136,29 +135,9 @@ export class Island {
         bluffMat.diffuseTexture = this._cloneTiled(this._rockTex, 10, 10);
         bluff.material = bluffMat;
 
-        // --- POND CSG CARVING ---
-        const pondCutter = MeshBuilder.CreateCylinder("cutter", { height: 2, diameter: 18 }, this._scene);
-        pondCutter.position = new Vector3(20, -0.2, 5);
-
-        const baseCSG = CSG.FromMesh(base1);
-        const groveCSG = CSG.FromMesh(grove);
-        const cutterCSG = CSG.FromMesh(pondCutter);
-
-        const newBaseCSG = baseCSG.subtract(cutterCSG);
-        const newGroveCSG = groveCSG.subtract(cutterCSG);
-
-        base1.dispose();
-        grove.dispose();
-        pondCutter.dispose();
-
-        const newBase1 = newBaseCSG.toMesh("base1", sandMat, this._scene);
-        newBase1.checkCollisions = true;
-
-        const newGrove = newGroveCSG.toMesh("grove", grassMat, this._scene);
-        newGrove.checkCollisions = false;
-
-        const pond = MeshBuilder.CreateCylinder("pond", { height: 0.8, diameter: 17.5 }, this._scene);
-        pond.position = new Vector3(20, -0.4, 5); // Water surface slightly below ground
+        // Pond — flat disc sitting on the terrain surface (no CSG carving needed)
+        const pond = MeshBuilder.CreateCylinder("pond", { height: 0.1, diameter: 17.5 }, this._scene);
+        pond.position = new Vector3(20, 0.05, 5); // Sits just above terrain surface at y=0
         pond.checkCollisions = false;
         const pondMat = new StandardMaterial("pond_mat", this._scene);
         pondMat.diffuseTexture = this._cloneTiled(this._waterTex, 5, 5);
@@ -293,8 +272,8 @@ export class Island {
             { type: "bush", position: new Vector3(-2, 0.1, 5) },
             { type: "bush", position: new Vector3(12, 0.1, 2) },
             { type: "stone", position: new Vector3(0, 0.25, 0) },
-            { type: "fish", position: new Vector3(5, -0.2, 5) },
-            { type: "fish", position: new Vector3(8, -0.2, -2) },
+            { type: "fish", position: new Vector3(5, 0.15, 5) },
+            { type: "fish", position: new Vector3(8, 0.15, -2) },
 
             // Rocky Bluff
             { type: "rock", position: new Vector3(5, 0.5, 35) },
