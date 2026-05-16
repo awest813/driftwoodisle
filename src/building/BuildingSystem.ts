@@ -3,8 +3,8 @@ import "@babylonjs/core/Culling/ray";
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { ProceduralTextures } from "../world/ProceduralTextures";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { ParticleSystem } from "@babylonjs/core/Particles/particleSystem";
 import type { Scene } from "@babylonjs/core/scene";
@@ -255,7 +255,7 @@ export class BuildingSystem {
             newStructure.checkCollisions = true;
 
             const fire = new ParticleSystem("fire", 100, this._scene);
-            fire.particleTexture = new Texture("https://playground.babylonjs.com/textures/fire.png", this._scene);
+            fire.particleTexture = ProceduralTextures.fireParticle(this._scene);
             fire.emitter = newStructure.position.add(new Vector3(0, 0.2, 0));
             fire.color1 = new Color4(1, 0.5, 0, 1.0);
             fire.color2 = new Color4(1, 0.1, 0, 1.0);

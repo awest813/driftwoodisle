@@ -3,6 +3,7 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
+import { ProceduralTextures } from "./ProceduralTextures";
 import { CSG } from "@babylonjs/core/Meshes/csg";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
@@ -23,12 +24,33 @@ export class Island {
     private _baseFish!: Mesh;
     private _basePalmLeaf!: Mesh;
     private _mistPatches: Mesh[] = [];
+    private _woodTex!: Texture;
+    private _grassTex!: Texture;
+    private _rockTex!: Texture;
+    private _sandTex!: Texture;
+    private _waterTex!: Texture;
 
     constructor(scene: Scene) {
         this._scene = scene;
     }
 
+    private _initTextures(): void {
+        this._woodTex = ProceduralTextures.wood(this._scene);
+        this._grassTex = ProceduralTextures.grass(this._scene);
+        this._rockTex = ProceduralTextures.rock(this._scene);
+        this._sandTex = ProceduralTextures.sand(this._scene);
+        this._waterTex = ProceduralTextures.water(this._scene);
+    }
+
+    private _cloneTiled(src: Texture, uScale: number, vScale: number): Texture {
+        const t = src.clone() as Texture;
+        t.uScale = uScale;
+        t.vScale = vScale;
+        return t;
+    }
+
     public async init(): Promise<void> {
+        this._initTextures();
         this._createBaseMeshes();
         this._createTerrain();
         this._createRegionalMist();
@@ -39,28 +61,25 @@ export class Island {
     private _createBaseMeshes(): void {
         this._baseTree = MeshBuilder.CreateCylinder("baseTree", { height: 6, diameter: 1 }, this._scene);
         const treeMat = new StandardMaterial("treeMat", this._scene);
-        treeMat.diffuseTexture = new Texture("https://playground.babylonjs.com/textures/wood.jpg", this._scene);
+        treeMat.diffuseTexture = this._woodTex;
         this._baseTree.material = treeMat;
         this._baseTree.isVisible = false;
 
         this._baseBush = MeshBuilder.CreateSphere("baseBush", { diameter: 1.5 }, this._scene);
         const bushMat = new StandardMaterial("bushMat", this._scene);
-        const bushTex = new Texture("https://playground.babylonjs.com/textures/grass.png", this._scene);
-        bushTex.uScale = 2;
-        bushTex.vScale = 2;
-        bushMat.diffuseTexture = bushTex;
+        bushMat.diffuseTexture = this._cloneTiled(this._grassTex, 2, 2);
         this._baseBush.material = bushMat;
         this._baseBush.isVisible = false;
 
         this._baseRock = MeshBuilder.CreateBox("baseRock", { size: 2 }, this._scene);
         const rockMat = new StandardMaterial("rockMat", this._scene);
-        rockMat.diffuseTexture = new Texture("https://playground.babylonjs.com/textures/rock.png", this._scene);
+        rockMat.diffuseTexture = this._rockTex;
         this._baseRock.material = rockMat;
         this._baseRock.isVisible = false;
 
         this._baseCrate = MeshBuilder.CreateBox("baseCrate", { size: 1.2 }, this._scene);
         const crateMat = new StandardMaterial("crateMat", this._scene);
-        crateMat.diffuseTexture = new Texture("https://playground.babylonjs.com/textures/wood.jpg", this._scene);
+        crateMat.diffuseTexture = this._woodTex;
         this._baseCrate.material = crateMat;
         this._baseCrate.isVisible = false;
 
@@ -79,7 +98,7 @@ export class Island {
 
         this._basePalmLeaf = MeshBuilder.CreateBox("basePalmLeaf", { width: 0.25, height: 0.08, depth: 3.5 }, this._scene);
         const leafMat = new StandardMaterial("palmLeafMat", this._scene);
-        leafMat.diffuseTexture = new Texture("https://playground.babylonjs.com/textures/grass.png", this._scene);
+        leafMat.diffuseTexture = this._grassTex;
         leafMat.diffuseColor = new Color3(0.35, 0.75, 0.25);
         this._basePalmLeaf.material = leafMat;
         this._basePalmLeaf.isVisible = false;
@@ -93,10 +112,7 @@ export class Island {
         base2.position = new Vector3(-20, -0.5, 20);
         
         const sandMat = new StandardMaterial("sand_mat", this._scene);
-        const sandTex = new Texture("https://playground.babylonjs.com/textures/sand.jpg", this._scene);
-        sandTex.uScale = 20;
-        sandTex.vScale = 20;
-        sandMat.diffuseTexture = sandTex;
+        sandMat.diffuseTexture = this._cloneTiled(this._sandTex, 20, 20);
         sandMat.specularColor = new Color3(0.1, 0.1, 0.1);
         base1.material = sandMat;
         base2.material = sandMat;
@@ -108,10 +124,7 @@ export class Island {
         grove.position = new Vector3(25, 0.01, 10);
         grove.checkCollisions = true;
         const grassMat = new StandardMaterial("grass_mat", this._scene);
-        const grassTex = new Texture("https://playground.babylonjs.com/textures/grass.png", this._scene);
-        grassTex.uScale = 15;
-        grassTex.vScale = 15;
-        grassMat.diffuseTexture = grassTex;
+        grassMat.diffuseTexture = this._cloneTiled(this._grassTex, 15, 15);
         grassMat.specularColor = new Color3(0, 0, 0);
         grove.material = grassMat;
 
@@ -120,10 +133,7 @@ export class Island {
         bluff.position = new Vector3(0, 5, 45);
         bluff.checkCollisions = true;
         const bluffMat = new StandardMaterial("rock_mat", this._scene);
-        const bluffTex = new Texture("https://playground.babylonjs.com/textures/rock.png", this._scene);
-        bluffTex.uScale = 10;
-        bluffTex.vScale = 10;
-        bluffMat.diffuseTexture = bluffTex;
+        bluffMat.diffuseTexture = this._cloneTiled(this._rockTex, 10, 10);
         bluff.material = bluffMat;
 
         // --- POND CSG CARVING ---
@@ -151,10 +161,7 @@ export class Island {
         pond.position = new Vector3(20, -0.4, 5); // Water surface slightly below ground
         pond.checkCollisions = false;
         const pondMat = new StandardMaterial("pond_mat", this._scene);
-        const waterTex = new Texture("https://playground.babylonjs.com/textures/waterbump.png", this._scene);
-        waterTex.uScale = 5;
-        waterTex.vScale = 5;
-        pondMat.diffuseTexture = waterTex;
+        pondMat.diffuseTexture = this._cloneTiled(this._waterTex, 5, 5);
         pondMat.specularColor = new Color3(1, 1, 1);
         pondMat.alpha = 0.8;
         pond.material = pondMat;
@@ -324,7 +331,7 @@ export class Island {
         const mat = new StandardMaterial(`${id}_mat`, this._scene);
         mat.diffuseColor = color;
         if (resourceType === "stone" || resourceType === "flint") {
-            mat.diffuseTexture = new Texture("https://playground.babylonjs.com/textures/rock.png", this._scene);
+            mat.diffuseTexture = this._rockTex;
             mesh.rotation = new Vector3(Math.random() * 0.4, Math.random() * Math.PI, Math.random() * 0.4);
         }
         mesh.material = mat;
@@ -587,7 +594,7 @@ export class Island {
         shellMat.specularColor = new Color3(0.2, 0.15, 0.1);
 
         const coralMat = new StandardMaterial("coral_mat", this._scene);
-        coralMat.diffuseTexture = new Texture("https://playground.babylonjs.com/textures/grass.png", this._scene);
+        coralMat.diffuseTexture = this._grassTex;
         coralMat.diffuseColor = new Color3(0.85, 0.35, 0.28);
 
         const details = [

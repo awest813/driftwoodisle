@@ -18,6 +18,20 @@ export class Game {
     private _fishing: any;
     private _worldPromise: Promise<void>;
     private _isStarting: boolean = false;
+    private _craftingSystem: any;
+    private _buildingSystem: any;
+    private _interactionSystem: any;
+
+    public get inventory() { return this._inventory; }
+    public get stats() { return this._stats; }
+    public get hud() { return this._hud; }
+    public get playerController() { return this._playerController; }
+    public get dayNight() { return this._dayNight; }
+    public get weather() { return this._weather; }
+    public get fishing() { return this._fishing; }
+    public get craftingSystem() { return this._craftingSystem; }
+    public get buildingSystem() { return this._buildingSystem; }
+    public get interactionSystem() { return this._interactionSystem; }
 
     constructor(canvasId: string) {
         this._canvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -53,20 +67,18 @@ export class Game {
 
         const { MeshBuilder } = await import("@babylonjs/core/Meshes/meshBuilder");
         const { StandardMaterial } = await import("@babylonjs/core/Materials/standardMaterial");
-        const { CubeTexture } = await import("@babylonjs/core/Materials/Textures/cubeTexture");
-        const { Texture } = await import("@babylonjs/core/Materials/Textures/texture");
-        const skybox = MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, this._scene);
-        skybox.infiniteDistance = true;
-        skybox.isPickable = false;
-        const skyboxMaterial = new StandardMaterial("skyBoxMat", this._scene);
-        skyboxMaterial.backFaceCulling = false;
-        skyboxMaterial.disableLighting = true;
-        skyboxMaterial.diffuseColor = new Color3(0, 0, 0);
-        skyboxMaterial.specularColor = new Color3(0, 0, 0);
-        skyboxMaterial.emissiveColor = new Color3(0.55, 0.72, 0.88);
-        skyboxMaterial.reflectionTexture = new CubeTexture("https://playground.babylonjs.com/textures/skybox", this._scene);
-        skyboxMaterial.reflectionTexture.coordinatesMode = Texture.SKYBOX_MODE;
-        skybox.material = skyboxMaterial;
+        const { ProceduralTextures } = await import("../world/ProceduralTextures");
+        const skydome = MeshBuilder.CreateSphere("skyDome", { diameter: 1000, segments: 24, sideOrientation: 1 }, this._scene);
+        skydome.infiniteDistance = true;
+        skydome.isPickable = false;
+        const skyMat = new StandardMaterial("skyDomeMat", this._scene);
+        skyMat.backFaceCulling = false;
+        skyMat.disableLighting = true;
+        skyMat.diffuseColor = new Color3(0, 0, 0);
+        skyMat.specularColor = new Color3(0, 0, 0);
+        skyMat.emissiveColor = new Color3(1, 1, 1);
+        skyMat.emissiveTexture = ProceduralTextures.skyGradient(this._scene);
+        skydome.material = skyMat;
 
         // Setup Main Menu
         this._setupMenu();
@@ -162,7 +174,7 @@ export class Game {
 
     private async _setupInteraction(): Promise<void> {
         const { InteractionSystem } = await import("../interaction/InteractionSystem");
-        new InteractionSystem(this._scene, this._inventory, this._hud, this._stats);
+        this._interactionSystem = new InteractionSystem(this._scene, this._inventory, this._hud, this._stats);
     }
 
     private async _setupFishing(): Promise<void> {
@@ -182,8 +194,8 @@ export class Game {
         this._inventory = new Inventory();
         this._stats = new PlayerStats();
         this._hud = new HUD(this._inventory, this._stats);
-        const buildingSystem = new BuildingSystem(this._scene, this._hud);
-        new CraftingSystem(this._inventory, this._hud, buildingSystem, this._stats);
+        this._buildingSystem = new BuildingSystem(this._scene, this._hud);
+        this._craftingSystem = new CraftingSystem(this._inventory, this._hud, this._buildingSystem, this._stats);
 
         const sun = this._scene.getLightByName("dirLight") as DirectionalLight;
         this._dayNight = new DayNightCycle(this._scene, sun);
@@ -265,6 +277,7 @@ export class Game {
     }
 
     private _exposeTestHooks(): void {
+        (window as any).game = this;
         (window as any).advanceTime = (ms: number = 16) => {
             const steps = Math.max(1, Math.round(ms / (1000 / 60)));
             for (let i = 0; i < steps; i++) {
