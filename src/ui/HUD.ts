@@ -1,5 +1,7 @@
 import { PlayerStats } from "../player/PlayerStats";
 import { Inventory } from "../inventory/Inventory";
+import { ITEMS, HOTBAR_ORDER, itemDef } from "../inventory/ItemRegistry";
+import type { ResourceType } from "../inventory/ItemTypes";
 
 export class HUD {
     private _inventory: Inventory;
@@ -38,6 +40,10 @@ export class HUD {
         this._inventory.addListener((items: any) => {
             this.updateInventory(items);
         });
+
+        this._inventory.onChange((type, delta) => {
+            if (delta > 0) this._pulseSlot(type);
+        });
         
         // Setup hotbar input
         window.addEventListener("keydown", (e) => {
@@ -65,35 +71,39 @@ export class HUD {
 
     public updateInventory(items: Record<string, number>): void {
         const slots = document.querySelectorAll('.hotbar-slot');
-        
-        // Clear all slots except numbers
+
         slots.forEach(slot => {
-            // Remove emojis
             Array.from(slot.childNodes).forEach(child => {
                 if (child.nodeType === Node.TEXT_NODE) child.remove();
             });
             const qty = slot.querySelector('.slot-qty');
             if (qty) qty.textContent = '';
+            (slot as HTMLElement).removeAttribute('data-item');
+            (slot as HTMLElement).removeAttribute('title');
         });
 
-        const icons: Record<string, string> = {
-            wood: '🪵', stone: '🪨', fiber: '🌿', leaf: '🍃',
-            coconut: '🥥', berry: '🫐', fish: '🐟', rope: '🪢',
-            cloth: '👕', scrap: '🔩', flint: '🪨',
-            stoneAxe: '🪓', stonePickaxe: '⛏️', woodenSpear: '🔱',
-            fishingRod: '🎣'
-        };
+        const visibleTypes = HOTBAR_ORDER.filter(t => (items[t] || 0) > 0 && ITEMS[t]?.showInHotbar);
+        visibleTypes.slice(0, 9).forEach((type, slotIndex) => {
+            const slot = slots[slotIndex] as HTMLElement;
+            if (!slot) return;
+            const def = ITEMS[type];
+            const count = items[type] || 0;
+            slot.appendChild(document.createTextNode(def?.icon || '📦'));
+            const qty = slot.querySelector('.slot-qty');
+            if (qty && count > 1) qty.textContent = count.toString();
+            slot.setAttribute('data-item', type);
+            slot.setAttribute('title', `${def?.name || type} (${count})`);
+        });
+    }
 
-        let slotIndex = 0;
-        for (const [type, count] of Object.entries(items)) {
-            if (count > 0 && slotIndex < 9) {
-                const slot = slots[slotIndex];
-                slot.appendChild(document.createTextNode(icons[type] || '📦'));
-                const qty = slot.querySelector('.slot-qty');
-                if (qty && count > 1) qty.textContent = count.toString();
-                slotIndex++;
-            }
-        }
+    private _pulseSlot(type: ResourceType): void {
+        if (!itemDef(type)?.showInHotbar) return;
+        const slot = document.querySelector(`.hotbar-slot[data-item="${type}"]`) as HTMLElement | null;
+        if (!slot) return;
+        slot.classList.remove('pulse');
+        // force reflow to restart the animation
+        void slot.offsetWidth;
+        slot.classList.add('pulse');
     }
 
     private _updateBar(id: string, value: number): void {

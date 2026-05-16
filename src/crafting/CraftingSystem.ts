@@ -6,6 +6,8 @@ import type { ResourceType } from "../inventory/ItemTypes";
 import type { BuildingSystem } from "../building/BuildingSystem";
 import type { PlayerStats } from "../player/PlayerStats";
 import { SoundManager } from "../game/SoundManager";
+import { ITEMS, CATEGORY_LABELS, CATEGORY_ORDER, itemDef } from "../inventory/ItemRegistry";
+import type { ItemCategory } from "../inventory/ItemRegistry";
 
 export class CraftingSystem {
     private _inventory: Inventory;
@@ -146,57 +148,90 @@ export class CraftingSystem {
             this._recipeListElement?.appendChild(itemEl);
         });
 
-        // Render Inventory
-        const invGrid = document.getElementById("inventoryGrid");
-        if (invGrid) {
-            invGrid.innerHTML = "";
-            const data = this._inventory.getData();
-            Object.entries(data).forEach(([type, count]) => {
-                if ((count as number) > 0) {
-                    const itemEl = document.createElement("div");
-                    itemEl.className = "recipe-item";
-                    
-                    const isEdible = type === "berry" || type === "coconut" || type === "fish";
-                    const btnHtml = isEdible ? `<button class="craft-btn eat-btn">Eat</button>` : '';
+        this._renderInventoryGrid();
+    }
 
+    private _renderInventoryGrid(): void {
+        const invGrid = document.getElementById("inventoryGrid");
+        if (!invGrid) return;
+        invGrid.innerHTML = "";
+
+        const data = this._inventory.getData();
+        const grouped: Partial<Record<ItemCategory, Array<{ type: string; count: number }>>> = {};
+        Object.entries(data).forEach(([type, count]) => {
+            if ((count as number) <= 0) return;
+            const def = itemDef(type);
+            if (!def) return;
+            (grouped[def.category] ||= []).push({ type, count: count as number });
+        });
+
+        const hasAny = Object.values(grouped).some(arr => arr && arr.length > 0);
+        if (!hasAny) {
+            const empty = document.createElement("div");
+            empty.className = "inv-empty";
+            empty.textContent = "Your backpack is empty. Forage and gather!";
+            invGrid.appendChild(empty);
+            return;
+        }
+
+        CATEGORY_ORDER.forEach(cat => {
+            const entries = grouped[cat];
+            if (!entries || entries.length === 0) return;
+
+            const header = document.createElement("div");
+            header.className = "inv-category-header";
+            header.textContent = CATEGORY_LABELS[cat];
+            invGrid.appendChild(header);
+
+            entries
+                .sort((a, b) => (ITEMS[a.type as keyof typeof ITEMS]?.name || a.type).localeCompare(ITEMS[b.type as keyof typeof ITEMS]?.name || b.type))
+                .forEach(({ type, count }) => {
+                    const def = itemDef(type)!;
+                    const isEdible = !!def.food;
+
+                    const itemEl = document.createElement("div");
+                    itemEl.className = "recipe-item inv-item" + (isEdible ? " edible" : "");
+                    itemEl.title = isEdible
+                        ? `${def.name} — click to eat`
+                        : def.name;
                     itemEl.innerHTML = `
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <h3 style="margin:0; font-size: 1.2rem;">${this._icons[type] || ''} x${count}</h3>
-                            ${btnHtml}
+                        <div class="inv-item-row">
+                            <span class="inv-icon">${def.icon}</span>
+                            <span class="inv-name">${def.name}</span>
+                            <span class="inv-qty">x${count}</span>
                         </div>
+                        ${isEdible ? `<div class="inv-hint">Click to eat</div>` : ''}
                     `;
-                    invGrid.appendChild(itemEl);
 
                     if (isEdible) {
-                        const btn = itemEl.querySelector(".eat-btn") as HTMLButtonElement;
-                        btn.onclick = () => this._eatItem(type);
+                        itemEl.style.cursor = "pointer";
+                        itemEl.onclick = () => this._eatItem(type);
                     }
-                }
-            });
-        }
+
+                    invGrid.appendChild(itemEl);
+                });
+        });
     }
 
     private _eatItem(type: string): void {
-        const amount = this._inventory.getQuantity(type as ResourceType);
-        if (amount > 0) {
-            this._inventory.removeItem(type as ResourceType, 1);
-            if (type === "berry") {
-                SoundManager.instance?.play("pickup");
-                this._stats.restoreHunger(5);
-                this._stats.restoreThirst(5);
-                this._hud.showNotification("Ate Berry (+5 Hunger, +5 Thirst)");
-            } else if (type === "coconut") {
-                SoundManager.instance?.play("wood");
-                this._stats.restoreHunger(15);
-                this._stats.restoreThirst(20);
-                this._hud.showNotification("Ate Coconut (+15 Hunger, +20 Thirst)");
-            } else if (type === "fish") {
-                SoundManager.instance?.play("fish");
-                this._stats.restoreHunger(10);
-                this._hud.showNotification("Ate Raw Fish (+10 Hunger)");
-            }
-            this._renderRecipes(); // Re-render to update quantities
+        const def = itemDef(type);
+        if (!def?.food) return;
+        if (!this._inventory.hasItem(type as ResourceType, 1)) return;
+
+        this._inventory.removeItem(type as ResourceType, 1);
+        if (def.food.sound) SoundManager.instance?.play(def.food.sound);
+
+        const parts: string[] = [];
+        if (def.food.hunger) {
+            this._stats.restoreHunger(def.food.hunger);
+            parts.push(`+${def.food.hunger} Hunger`);
         }
+        if (def.food.thirst) {
+            this._stats.restoreThirst(def.food.thirst);
+            parts.push(`+${def.food.thirst} Thirst`);
+        }
+        this._hud.showNotification(`Ate ${def.name}${parts.length ? ` (${parts.join(", ")})` : ""}`);
+        this._renderRecipes();
     }
 
     private _canCraft(recipe: Recipe): boolean {
