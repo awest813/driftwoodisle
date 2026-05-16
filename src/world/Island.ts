@@ -106,7 +106,7 @@ export class Island {
     private _createTerrain(): void {
         // Main Island Base (Spawn Beach & Escape Beach) - Crescent shape approximation
         // Height 8 and centre at y=-4 means the top surface sits at y=0 while the island
-        // plunges 8 m below the ocean surface, giving a proper island silhouette.
+        // extends 4 m below the ocean surface (ocean is at y=-4), giving a proper island silhouette.
         const base1 = MeshBuilder.CreateCylinder("base1", { height: 8, diameterTop: 140, diameterBottom: 150 }, this._scene);
         base1.position = new Vector3(10, -4, -10);
         const base2 = MeshBuilder.CreateCylinder("base2", { height: 8, diameterTop: 120, diameterBottom: 130 }, this._scene);
