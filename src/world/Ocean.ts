@@ -10,7 +10,7 @@ export class Ocean {
         this._scene = scene;
         
         const ocean = MeshBuilder.CreateGround("ocean", { width: 1000, height: 1000 }, this._scene);
-        ocean.position.y = -0.5;
+        ocean.position.y = -4;
         
         const mat = new StandardMaterial("ocean_mat", this._scene);
         mat.diffuseColor = new Color3(0.1, 0.5, 0.8);
@@ -23,7 +23,7 @@ export class Ocean {
         let time = 0;
         this._scene.onBeforeRenderObservable.add(() => {
             time += 0.01;
-            ocean.position.y = -0.5 + Math.sin(time) * 0.1;
+            ocean.position.y = -4 + Math.sin(time) * 0.1;
         });
     }
 }

@@ -42,7 +42,7 @@ export class PlayerController {
 
     private _setupCamera(): void {
         this._camera = new FreeCamera("playerCamera", new Vector3(15, this._defaultCameraY, -15), this._scene);
-        this._camera.setTarget(new Vector3(15, this._defaultCameraY, -25));
+        this._camera.setTarget(new Vector3(0, this._defaultCameraY, 45));
         this._canvas.tabIndex = 0;
         this._canvas.focus({ preventScroll: true });
         this._camera.attachControl(this._canvas, true);
