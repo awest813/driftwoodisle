@@ -1,6 +1,7 @@
 Original prompt: work on getting game fully playable
 
 ## Notes
+- 2026-05-16 full audit pass started after UI/performance commit. Scope: menu/settings, start/save/load, pointer lock/pause, inventory/crafting, fishing, building, interaction selection, and production build health.
 - Initial `npm run build` failed on TypeScript errors in crafting, building, and HUD code.
 - Building placement raycast was checking terrain mesh names that do not exist in the generated island, making campfire/shelter placement impossible.
 - Fixed TypeScript build errors and verified `npm run build` completes.
@@ -249,3 +250,6 @@ Driftwood Isle is being pushed from a rough Babylon.js prototype into a fully pl
   - ESC pause no longer depends only on pointer-lock change events.
 
 - Menu unification pass started: inventory/crafting now uses the same full-screen journal overlay layer as pause; Tab/E toggles Backpack & Crafting; ESC closes crafting or opens Pause reliably through explicit controller handling.
+
+- 2026-05-16 audit found Babylon DefaultCollisionCoordinator side-effect missing during movement stepping; added explicit collisionCoordinator import in PlayerController before retesting.
+- 2026-05-16 major feature audit passed after the collision import: production build, bundled web-game client movement/screenshot loop, settings persistence, start/move, Tab/ESC overlays, craft axe/rod, eat item, place/complete campfire, save/load, fishing cast/bite/catch, raft victory, and game-over overlays all passed with no page errors.

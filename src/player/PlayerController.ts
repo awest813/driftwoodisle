@@ -1,4 +1,5 @@
 import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
+import "@babylonjs/core/Collisions/collisionCoordinator";
 import { PointerEventTypes } from "@babylonjs/core/Events/pointerEvents";
 import { Scalar } from "@babylonjs/core/Maths/math.scalar";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
