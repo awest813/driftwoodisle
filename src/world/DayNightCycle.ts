@@ -1,0 +1,68 @@
+import { Scene, DirectionalLight, Color3, Vector3 } from "@babylonjs/core";
+
+export class DayNightCycle {
+    private _scene: Scene;
+    private _sun: DirectionalLight;
+    private _time: number = 0.3; // start in the morning
+    private _dayDuration: number = 600000; // 10 minutes for a full day
+    private _day: number = 1;
+    
+    constructor(scene: Scene, sun: DirectionalLight) {
+        this._scene = scene;
+        this._sun = sun;
+        
+        this._scene.onBeforeRenderObservable.add(() => {
+            this._update();
+        });
+
+        setInterval(() => {
+            const timeSpan = document.getElementById("timeClock");
+            if (timeSpan) {
+                const hours = Math.floor(this._time * 24);
+                const mins = Math.floor((this._time * 24 * 60) % 60);
+                timeSpan.innerText = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+            }
+        }, 1000);
+    }
+
+    private _update(): void {
+        const deltaTime = this._scene.getEngine().getDeltaTime();
+        this._time += deltaTime / this._dayDuration;
+        if (this._time >= 1) {
+            this._time -= 1;
+            this._day++;
+            const dSpan = document.getElementById("dayCount");
+            if (dSpan) dSpan.innerText = this._day.toString();
+        }
+
+        // Calculate sun position (circular path)
+        const angle = this._time * Math.PI * 2;
+        const x = Math.cos(angle);
+        const y = Math.sin(angle);
+        
+        this._sun.direction = new Vector3(x, -y, 0.5);
+        
+        // Intensity and Colors
+        const isDay = y > 0;
+        const intensity = Math.max(0, y);
+        this._sun.intensity = intensity * 1.0;
+
+        // Atmosphere colors
+        const noonColor = new Color3(1, 1, 1);
+        const nightColor = new Color3(0.05, 0.05, 0.2);
+
+        // Interpolate background/fog colors
+        const lerpFactor = Math.abs(y);
+        const bgColor = Color3.Lerp(nightColor, isDay ? noonColor : nightColor, lerpFactor);
+        this._scene.clearColor = bgColor.toColor4();
+        this._scene.fogColor = bgColor;
+    }
+
+    public get time(): number {
+        return this._time;
+    }
+
+    public setTime(time: number): void {
+        this._time = time;
+    }
+}

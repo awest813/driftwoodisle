@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Driftwood Isle</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div id="mainMenu">
+        <div id="menuContent" class="journal-page">
+            <h1>DRIFTWOOD ISLE</h1>
+            <p>A Survival Journal</p>
+            <div style="text-align: left; background: rgba(0,0,0,0.1); padding: 15px; margin: 15px 0; border: 1px dashed var(--leather); font-size: 0.9rem;">
+                <strong>Controls:</strong><br>
+                <b>WASD</b>: Move &nbsp;|&nbsp; <b>Mouse</b>: Look &nbsp;|&nbsp; <b>Shift</b>: Sprint<br>
+                <b>Click</b>: Interact &nbsp;|&nbsp; <b>Right Click Water</b>: Fish &nbsp;|&nbsp; <b>Tab/E</b>: Inventory & Crafting &nbsp;|&nbsp; <b>ESC</b>: Pause
+            </div>
+            <div id="menuButtons">
+                <button id="startGame">New Entry</button>
+                <button id="loadGame" disabled>Continue</button>
+                <button id="openSettings">Settings</button>
+                <button id="openCredits">Credits</button>
+            </div>
+        </div>
+
+        <div id="settingsMenu" class="journal-page" style="display:none">
+            <h2>Settings</h2>
+            <div class="setting-row">
+                <label>Sensitivity</label>
+                <input type="range" id="sensRange" min="100" max="5000" value="2000">
+                <span id="sensValue" class="setting-value">2000</span>
+            </div>
+            <div class="setting-row">
+                <label>Volume</label>
+                <input type="range" id="volRange" min="0" max="100" value="50">
+                <span id="volValue" class="setting-value">50%</span>
+            </div>
+            <div class="setting-row">
+                <label>Fog Density</label>
+                <input type="range" id="fogRange" min="0" max="10" value="5">
+                <span id="fogValue" class="setting-value">5</span>
+            </div>
+            <div class="setting-row">
+                <label>High Quality Graphics</label>
+                <input type="checkbox" id="ppToggle" checked>
+                <span class="setting-value">FX</span>
+            </div>
+            <button id="audioPreviewBtn" class="back-btn small-btn">Test Audio</button>
+            <button id="closeSettings" class="back-btn">Back</button>
+        </div>
+
+        <div id="creditsMenu" class="journal-page" style="display:none">
+            <h2>Credits</h2>
+            <p>Developed by Antigravity</p>
+            <p>Engine: Babylon.js</p>
+            <p>Art: Low-Poly Jungle Kit</p>
+            <button id="closeCredits" class="back-btn">Back</button>
+        </div>
+    </div>
+    <canvas id="renderCanvas"></canvas>
+    <div id="crosshair"></div>
+    <div id="interactionPrompt"></div>
+    
+    <div id="hud">
+        <div id="timeTempUI" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); padding: 10px; border: 2px solid #5a3c22; font-family: 'Special Elite'; color: #e6d5c3; font-size: 1.2rem; pointer-events: none;">
+            Day <span id="dayCount">1</span> | <span id="timeClock">08:00</span> | Temp: <span id="tempDisplay">37</span>°C
+        </div>
+        <div id="compass">
+            <span id="compass-text">N (0°)</span>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-row">
+                <span class="stat-icon">❤️</span>
+                <div class="stat-bar-bg"><div id="healthBar" class="stat-bar health"></div></div>
+                <span id="healthVal" class="stat-val">100</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-icon">🍖</span>
+                <div class="stat-bar-bg"><div id="hungerBar" class="stat-bar hunger"></div></div>
+                <span id="hungerVal" class="stat-val">100</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-icon">💧</span>
+                <div class="stat-bar-bg"><div id="thirstBar" class="stat-bar thirst"></div></div>
+                <span id="thirstVal" class="stat-val">100</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-icon">⚡</span>
+                <div class="stat-bar-bg"><div id="staminaBar" class="stat-bar stamina"></div></div>
+                <span id="staminaVal" class="stat-val">100</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-icon" id="warmthIcon">☀️</span>
+                <div class="stat-bar-bg"><div id="warmthBar" class="stat-bar" style="background-color: #ff9900;"></div></div>
+                <span id="warmthVal" class="stat-val">100</span>
+            </div>
+        </div>
+        <div id="notifications"></div>
+        <div id="hotbar" class="minecraft-hotbar">
+            <div class="hotbar-slot active" id="slot-1"><span class="slot-number">1</span><span class="slot-qty"></span></div>
+            <div class="hotbar-slot" id="slot-2"><span class="slot-number">2</span><span class="slot-qty"></span></div>
+            <div class="hotbar-slot" id="slot-3"><span class="slot-number">3</span><span class="slot-qty"></span></div>
+            <div class="hotbar-slot" id="slot-4"><span class="slot-number">4</span><span class="slot-qty"></span></div>
+            <div class="hotbar-slot" id="slot-5"><span class="slot-number">5</span><span class="slot-qty"></span></div>
+            <div class="hotbar-slot" id="slot-6"><span class="slot-number">6</span><span class="slot-qty"></span></div>
+            <div class="hotbar-slot" id="slot-7"><span class="slot-number">7</span><span class="slot-qty"></span></div>
+            <div class="hotbar-slot" id="slot-8"><span class="slot-number">8</span><span class="slot-qty"></span></div>
+            <div class="hotbar-slot" id="slot-9"><span class="slot-number">9</span><span class="slot-qty"></span></div>
+        </div>
+    </div>
+
+    <div id="craftingMenu" class="overlay">
+        <div class="overlay-content journal-page inventory-page">
+            <h2>Backpack & Crafting</h2>
+            <div class="inventory-layout">
+                <div class="inventory-panel">
+                    <h3>Backpack</h3>
+                    <div id="inventoryGrid" class="recipe-grid" style="grid-template-columns: 1fr 1fr;">
+                        <!-- Inventory items will be injected here -->
+                    </div>
+                </div>
+                <div class="inventory-panel">
+                    <h3>Crafting</h3>
+                    <div id="recipeList" class="recipe-grid" style="grid-template-columns: 1fr;">
+                        <!-- Recipes will be injected here -->
+                    </div>
+                </div>
+            </div>
+            <button id="closeCrafting" class="back-btn">Close (Tab / E / Esc)</button>
+        </div>
+    </div>
+
+    <div id="escMenu" class="overlay">
+        <div class="overlay-content journal-page">
+            <h2>Paused</h2>
+            <div id="menuButtons">
+                <button id="resumeBtn">Resume</button>
+                <button id="saveBtn">Save Game</button>
+                <button id="loadInGameBtn">Load Game</button>
+                <button id="exitBtn">Exit to Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="victoryScreen" class="overlay">
+        <div class="overlay-content">
+            <h1>🏝️ Island Escaped!</h1>
+            <p>You repaired the raft and sailed to safety.</p>
+            <button onclick="location.reload()">Return to Main Menu</button>
+        </div>
+    </div>
+
+    <div id="gameOverScreen" class="overlay">
+        <div class="overlay-content">
+            <h1>💀 You Perished</h1>
+            <p>The island was too harsh this time.</p>
+            <button onclick="location.reload()">Try Again</button>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
