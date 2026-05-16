@@ -11,6 +11,22 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { Interactable } from "../interaction/Interactable";
 import { SoundManager } from "../game/SoundManager";
 
+// Babylon's Texture.clone() on a DynamicTexture allocates a new GL texture but
+// never copies the source canvas or calls update(), so isReady() stays false and
+// any mesh using the clone is silently skipped during rendering.
+function cloneDynamicTextureTiled(src: DynamicTexture, uScale: number, vScale: number, scene: Scene): DynamicTexture {
+    const size = src.getSize();
+    const out = new DynamicTexture(src.name, { width: size.width, height: size.height }, scene, false);
+    out.hasAlpha = src.hasAlpha;
+    const srcCanvas = (src.getContext() as unknown as CanvasRenderingContext2D).canvas;
+    const dstCtx = out.getContext() as unknown as CanvasRenderingContext2D;
+    dstCtx.drawImage(srcCanvas, 0, 0);
+    out.update(false);
+    out.uScale = uScale;
+    out.vScale = vScale;
+    return out;
+}
+
 export class Island {
     private _scene: Scene;
     private _treeModel: any;
@@ -23,11 +39,11 @@ export class Island {
     private _baseFish!: Mesh;
     private _basePalmLeaf!: Mesh;
     private _mistPatches: Mesh[] = [];
-    private _woodTex!: Texture;
-    private _grassTex!: Texture;
-    private _rockTex!: Texture;
-    private _sandTex!: Texture;
-    private _waterTex!: Texture;
+    private _woodTex!: DynamicTexture;
+    private _grassTex!: DynamicTexture;
+    private _rockTex!: DynamicTexture;
+    private _sandTex!: DynamicTexture;
+    private _waterTex!: DynamicTexture;
 
     constructor(scene: Scene) {
         this._scene = scene;
@@ -41,11 +57,8 @@ export class Island {
         this._waterTex = ProceduralTextures.water(this._scene);
     }
 
-    private _cloneTiled(src: Texture, uScale: number, vScale: number): Texture {
-        const t = src.clone() as Texture;
-        t.uScale = uScale;
-        t.vScale = vScale;
-        return t;
+    private _cloneTiled(src: DynamicTexture, uScale: number, vScale: number): DynamicTexture {
+        return cloneDynamicTextureTiled(src, uScale, vScale, this._scene);
     }
 
     public async init(): Promise<void> {
@@ -186,17 +199,6 @@ export class Island {
         mistTexture.hasAlpha = true;
         mistTexture.update();
 
-        const mistMat = new StandardMaterial("regional_mist_mat", this._scene);
-        mistMat.diffuseColor = new Color3(0.78, 0.84, 0.82);
-        mistMat.emissiveColor = new Color3(0.32, 0.36, 0.34);
-        mistMat.alpha = 0.16;
-        mistMat.diffuseTexture = mistTexture;
-        mistMat.opacityTexture = mistTexture;
-        mistMat.useAlphaFromDiffuseTexture = true;
-        mistMat.disableLighting = true;
-        mistMat.backFaceCulling = false;
-        mistMat.specularColor = new Color3(0, 0, 0);
-
         const patches = [
             { name: "forest_mist_0", position: new Vector3(24, 3.4, 12), scale: new Vector3(18, 6, 1), alpha: 0.2 },
             { name: "forest_mist_1", position: new Vector3(35, 4.2, 17), scale: new Vector3(16, 7, 1), alpha: 0.18 },
@@ -208,8 +210,18 @@ export class Island {
         ];
 
         patches.forEach((patch, i) => {
-            const mat = mistMat.clone(`${patch.name}_mat`);
+            // Build a fresh material per patch sharing the mist texture; cloning a
+            // StandardMaterial deep-clones DynamicTextures into non-ready stubs.
+            const mat = new StandardMaterial(`${patch.name}_mat`, this._scene);
+            mat.diffuseColor = new Color3(0.78, 0.84, 0.82);
+            mat.emissiveColor = new Color3(0.32, 0.36, 0.34);
+            mat.specularColor = new Color3(0, 0, 0);
             mat.alpha = patch.alpha;
+            mat.diffuseTexture = mistTexture;
+            mat.opacityTexture = mistTexture;
+            mat.useAlphaFromDiffuseTexture = true;
+            mat.disableLighting = true;
+            mat.backFaceCulling = false;
             const mist = MeshBuilder.CreatePlane(patch.name, { width: 1, height: 1 }, this._scene);
             mist.position = patch.position;
             mist.scaling = patch.scale;
