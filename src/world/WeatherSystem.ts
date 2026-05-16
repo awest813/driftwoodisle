@@ -8,6 +8,7 @@ import { ParticleSystem } from "@babylonjs/core/Particles/particleSystem";
 import { Scene } from "@babylonjs/core/scene";
 import { PlayerStats } from "../player/PlayerStats";
 import { SoundManager } from "../game/SoundManager";
+import { SettingsManager } from "../save/SettingsManager";
 
 export class WeatherSystem {
     private _scene: Scene;
@@ -135,7 +136,8 @@ export class WeatherSystem {
             this._scene.fogColor = new Color3(0.58, 0.62, 0.66);
         } else {
             this._scene.fogMode = Scene.FOGMODE_EXP;
-            this._scene.fogDensity = 0.0025;
+            // Restore user's saved fog density instead of hardcoding the default
+            this._scene.fogDensity = SettingsManager.settings.fogDensity * 0.0005;
             this._scene.fogColor = new Color3(0.68, 0.78, 0.82);
         }
     }
