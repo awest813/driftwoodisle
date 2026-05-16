@@ -1,5 +1,6 @@
 import { SaveSystem } from "../save/SaveSystem";
 import { SettingsManager } from "../save/SettingsManager";
+import { LoadingScreen } from "./LoadingScreen";
 
 export class MainMenu {
     private _menuElement: HTMLElement | null;
@@ -107,12 +108,16 @@ export class MainMenu {
         if (this._menuElement) {
             this._menuElement.style.display = "none";
         }
-        
+
+        LoadingScreen.show(isLoad ? "Recovering your journal" : "Charting the shore");
+
         try {
             await this._onStart(isLoad);
+            LoadingScreen.hide();
             this._setStartingState(false);
         } catch (error) {
             console.error("Failed to start game", error);
+            LoadingScreen.hide();
             if (this._menuElement) this._menuElement.style.display = "flex";
             this._setStartingState(false);
             this._isStarting = false;

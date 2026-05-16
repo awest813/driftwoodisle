@@ -2,7 +2,6 @@ import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
-import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import { ProceduralTextures } from "./ProceduralTextures";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
@@ -10,6 +9,16 @@ import { ParticleSystem } from "@babylonjs/core/Particles/particleSystem";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Interactable } from "../interaction/Interactable";
 import { SoundManager } from "../game/SoundManager";
+
+let _sharedFlareTex: DynamicTexture | null = null;
+let _sharedFlareScene: Scene | null = null;
+function getFlareTexture(scene: Scene): DynamicTexture {
+    if (!_sharedFlareTex || _sharedFlareScene !== scene) {
+        _sharedFlareTex = ProceduralTextures.radialFlare(scene);
+        _sharedFlareScene = scene;
+    }
+    return _sharedFlareTex;
+}
 
 // Babylon's Texture.clone() on a DynamicTexture allocates a new GL texture but
 // never copies the source canvas or calls update(), so isReady() stays false and
@@ -400,7 +409,7 @@ export class Island {
 
     private _spawnParticles(position: Vector3, color: Color3): void {
         const ps = new ParticleSystem("particles", 50, this._scene);
-        ps.particleTexture = new Texture("https://www.babylonjs-playground.com/textures/flare.png", this._scene);
+        ps.particleTexture = getFlareTexture(this._scene);
         ps.emitter = position;
         ps.color1 = new Color4(color.r, color.g, color.b, 1.0);
         ps.color2 = new Color4(color.r, color.g, color.b, 1.0);
