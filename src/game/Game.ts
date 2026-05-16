@@ -21,6 +21,7 @@ export class Game {
     private _craftingSystem: any;
     private _buildingSystem: any;
     private _interactionSystem: any;
+    private _sky: any;
 
     public get inventory() { return this._inventory; }
     public get stats() { return this._stats; }
@@ -32,6 +33,7 @@ export class Game {
     public get craftingSystem() { return this._craftingSystem; }
     public get buildingSystem() { return this._buildingSystem; }
     public get interactionSystem() { return this._interactionSystem; }
+    public get sky() { return this._sky; }
 
     constructor(canvasId: string) {
         this._canvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -65,20 +67,8 @@ export class Game {
         // Setup world
         this._worldPromise = this._createPlaceholderWorld();
 
-        const { MeshBuilder } = await import("@babylonjs/core/Meshes/meshBuilder");
-        const { StandardMaterial } = await import("@babylonjs/core/Materials/standardMaterial");
-        const { ProceduralTextures } = await import("../world/ProceduralTextures");
-        const skydome = MeshBuilder.CreateSphere("skyDome", { diameter: 1000, segments: 24, sideOrientation: 1 }, this._scene);
-        skydome.infiniteDistance = true;
-        skydome.isPickable = false;
-        const skyMat = new StandardMaterial("skyDomeMat", this._scene);
-        skyMat.backFaceCulling = false;
-        skyMat.disableLighting = true;
-        skyMat.diffuseColor = new Color3(0, 0, 0);
-        skyMat.specularColor = new Color3(0, 0, 0);
-        skyMat.emissiveColor = new Color3(1, 1, 1);
-        skyMat.emissiveTexture = ProceduralTextures.skyGradient(this._scene);
-        skydome.material = skyMat;
+        const { Sky } = await import("../world/Sky");
+        this._sky = new Sky(this._scene);
 
         // Setup Main Menu
         this._setupMenu();
@@ -139,7 +129,7 @@ export class Game {
 
             // Setup Weather after settings so ambience inherits saved audio volume.
             const { WeatherSystem } = await import("../world/WeatherSystem");
-            this._weather = new WeatherSystem(this._scene, this._stats);
+            this._weather = new WeatherSystem(this._scene, this._stats, this._sky);
 
             // Handle death
             window.addEventListener("playerDied", () => {
@@ -198,7 +188,7 @@ export class Game {
         this._craftingSystem = new CraftingSystem(this._inventory, this._hud, this._buildingSystem, this._stats);
 
         const sun = this._scene.getLightByName("dirLight") as DirectionalLight;
-        this._dayNight = new DayNightCycle(this._scene, sun);
+        this._dayNight = new DayNightCycle(this._scene, sun, this._sky);
 
         // Auto-save every 30 seconds
         setInterval(() => {

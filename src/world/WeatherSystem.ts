@@ -9,18 +9,21 @@ import { Scene } from "@babylonjs/core/scene";
 import { PlayerStats } from "../player/PlayerStats";
 import { SoundManager } from "../game/SoundManager";
 import { SettingsManager } from "../save/SettingsManager";
+import type { Sky } from "./Sky";
 
 export class WeatherSystem {
     private _scene: Scene;
     private _stats: PlayerStats;
+    private _sky: Sky | null;
     private _rainSystem: ParticleSystem | null = null;
     private _clouds: Mesh[] = [];
     private _isRaining: boolean = false;
     private _windTime: number = 0;
-    
-    constructor(scene: Scene, stats: PlayerStats) {
+
+    constructor(scene: Scene, stats: PlayerStats, sky: Sky | null = null) {
         this._scene = scene;
         this._stats = stats;
+        this._sky = sky;
         
         this._setupClouds();
         this._setupRain();
@@ -129,6 +132,8 @@ export class WeatherSystem {
         if (this._rainSystem) {
             this._rainSystem.emitRate = on ? 650 : 0;
         }
+
+        this._sky?.setWeather(on ? "storm" : "clear");
 
         if (on) {
             this._scene.fogMode = Scene.FOGMODE_EXP;

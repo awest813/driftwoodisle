@@ -2,17 +2,21 @@ import type { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Scene } from "@babylonjs/core/scene";
+import type { Sky } from "./Sky";
 
 export class DayNightCycle {
     private _scene: Scene;
     private _sun: DirectionalLight;
+    private _sky: Sky | null;
     private _time: number = 0.3; // start in the morning
     private _dayDuration: number = 600000; // 10 minutes for a full day
     private _day: number = 1;
-    
-    constructor(scene: Scene, sun: DirectionalLight) {
+
+    constructor(scene: Scene, sun: DirectionalLight, sky: Sky | null = null) {
         this._scene = scene;
         this._sun = sun;
+        this._sky = sky;
+        this._sky?.setTimeOfDay(this._time);
         
         this._scene.onBeforeRenderObservable.add(() => {
             this._update();
@@ -58,6 +62,8 @@ export class DayNightCycle {
         const lerpFactor = Math.abs(y);
         const bgColor = Color3.Lerp(nightColor, isDay ? noonColor : nightColor, lerpFactor);
         this._scene.clearColor = bgColor.toColor4();
+
+        this._sky?.setTimeOfDay(this._time);
     }
 
     public get time(): number {
@@ -66,5 +72,6 @@ export class DayNightCycle {
 
     public setTime(time: number): void {
         this._time = time;
+        this._sky?.setTimeOfDay(time);
     }
 }

@@ -135,14 +135,40 @@ export const ProceduralTextures = {
         return tex;
     },
     skyGradient(scene: Scene): DynamicTexture {
+        // DynamicTexture defaults to invertY=true, so canvas top maps to V=1 (zenith)
+        // and canvas bottom to V=0 (horizon). Blue stays at the top, warm at horizon.
         const tex = makeTexture("proc_sky", 512, scene, (ctx, s) => {
             const grad = ctx.createLinearGradient(0, 0, 0, s);
-            grad.addColorStop(0, "#7fb6e6");
+            grad.addColorStop(0, "#5fa0d8");
             grad.addColorStop(0.55, "#bcdcef");
             grad.addColorStop(1, "#f0e7c8");
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, s, s);
         });
         return tex;
+    },
+    skyStorm(scene: Scene): DynamicTexture {
+        return makeTexture("proc_sky_storm", 512, scene, (ctx, s) => {
+            const r = rand(606);
+            const grad = ctx.createLinearGradient(0, 0, 0, s);
+            // Dark stormy zenith at canvas top, lighter haze near the horizon.
+            grad.addColorStop(0, "#2a323b");
+            grad.addColorStop(0.55, "#4d5660");
+            grad.addColorStop(1, "#8c949c");
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, s, s);
+            for (let i = 0; i < 140; i++) {
+                const x = r() * s;
+                const y = r() * s;
+                const radius = 40 + r() * 130;
+                const alpha = 0.08 + r() * 0.22;
+                const shade = 20 + Math.floor(r() * 70);
+                const g2 = ctx.createRadialGradient(x, y, 0, x, y, radius);
+                g2.addColorStop(0, `rgba(${shade},${shade},${shade + 10},${alpha})`);
+                g2.addColorStop(1, `rgba(${shade},${shade},${shade + 10},0)`);
+                ctx.fillStyle = g2;
+                ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+            }
+        });
     },
 };
