@@ -1,8 +1,8 @@
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { ProceduralTextures } from "./ProceduralTextures";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { ParticleSystem } from "@babylonjs/core/Particles/particleSystem";
 import { Scene } from "@babylonjs/core/scene";
@@ -34,7 +34,7 @@ export class WeatherSystem {
 
     private _setupRain(): void {
         this._rainSystem = new ParticleSystem("rain", 1200, this._scene);
-        this._rainSystem.particleTexture = new Texture("https://assets.babylonjs.com/textures/flare.png", this._scene);
+        this._rainSystem.particleTexture = ProceduralTextures.radialFlare(this._scene);
         
         // Emission area (above player)
         this._rainSystem.emitter = new Vector3(0, 20, 0);
