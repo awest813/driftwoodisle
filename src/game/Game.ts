@@ -107,39 +107,51 @@ export class Game {
         if (this._isStarting || this._playerController) return;
         this._isStarting = true;
         try {
+            const { LoadingScreen } = await import("../ui/LoadingScreen");
+
             // Wait for the world to finish generating so player doesn't fall
-            await this._worldPromise;
+            await LoadingScreen.step("Shaping the island terrain", 0.18, async () => {
+                await this._worldPromise;
+            });
 
-            // Setup HUD and Stats
-            await this._setupSystems();
+            await LoadingScreen.step("Tying up survival gear", 0.42, async () => {
+                await this._setupSystems();
+            });
 
-            // Setup Player Controller
-            await this._setupPlayer();
+            await LoadingScreen.step("Waking the explorer", 0.58, async () => {
+                await this._setupPlayer();
+            });
 
-            // Setup ESC Menu
+            // ESC menu wiring is cheap and doesn't need its own status step.
             this._setupEscMenu();
 
-            // Setup Interaction System
-            await this._setupInteraction();
-            await this._setupFishing();
+            await LoadingScreen.step("Listening for tides and trails", 0.72, async () => {
+                await this._setupInteraction();
+                await this._setupFishing();
+            });
 
             const { SaveSystem } = await import("../save/SaveSystem");
             if (isLoad && SaveSystem.hasSave()) {
-                SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera);
+                await LoadingScreen.step("Reading the old journal", 0.82, () => {
+                    SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera);
+                });
                 this._hud.showNotification("Game Loaded");
             }
 
             const { SettingsManager } = await import("../save/SettingsManager");
-            SettingsManager.apply();
+            await LoadingScreen.step("Applying preferences", 0.9, async () => {
+                SettingsManager.apply();
+                // Post processing is expensive on integrated GPUs, so load it only when enabled.
+                if (SettingsManager.settings.postProcessing) {
+                    await this.enableHighQualityRendering();
+                }
+            });
 
-            // Post processing is expensive on integrated GPUs, so load it only when enabled.
-            if (SettingsManager.settings.postProcessing) {
-                await this.enableHighQualityRendering();
-            }
-
-            // Setup Weather after settings so ambience inherits saved audio volume.
-            const { WeatherSystem } = await import("../world/WeatherSystem");
-            this._weather = new WeatherSystem(this._scene, this._stats);
+            await LoadingScreen.step("Reading the weather", 0.98, async () => {
+                // Setup Weather after settings so ambience inherits saved audio volume.
+                const { WeatherSystem } = await import("../world/WeatherSystem");
+                this._weather = new WeatherSystem(this._scene, this._stats);
+            });
 
             // Handle death
             window.addEventListener("playerDied", () => {
