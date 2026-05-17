@@ -13,9 +13,10 @@
             <h1>DRIFTWOOD ISLE</h1>
             <p>A Survival Journal</p>
             <div class="controls-note">
-                <strong>Controls:</strong><br>
+                <strong>Keyboard &amp; Mouse:</strong><br>
                 <b>WASD</b>: Move &nbsp;|&nbsp; <b>Mouse</b>: Look &nbsp;|&nbsp; <b>Shift</b>: Sprint<br>
-                <b>Click</b>: Interact &nbsp;|&nbsp; <b>Right Click Water</b>: Fish &nbsp;|&nbsp; <b>Tab/E</b>: Inventory & Crafting &nbsp;|&nbsp; <b>ESC</b>: Pause
+                <b>Click</b>: Interact &nbsp;|&nbsp; <b>Right Click Water</b>: Fish &nbsp;|&nbsp; <b>Tab/E</b>: Inventory &nbsp;|&nbsp; <b>ESC</b>: Pause<br>
+                <strong>Touch:</strong> Left stick to move, drag right side to look, on-screen buttons for actions
             </div>
             <div id="menuButtons">
                 <button id="startGame">New Entry</button>
@@ -48,6 +49,34 @@
                 <span id="qualityValue" class="setting-value">Low GPU</span>
             </div>
             <p class="settings-hint">High Quality renders at full resolution on HiDPI / Retina screens (GPU-intensive). Low GPU mode is recommended for integrated graphics and systems with 4 GB RAM or less.</p>
+
+            <h3 class="settings-subheader">Touch Controls</h3>
+            <div class="setting-row">
+                <label for="touchModeSelect">Mobile Controls</label>
+                <select id="touchModeSelect">
+                    <option value="auto">Auto-detect</option>
+                    <option value="on">Always On</option>
+                    <option value="off">Always Off</option>
+                </select>
+                <span id="touchModeValue" class="setting-value">Auto</span>
+            </div>
+            <div class="setting-row">
+                <label for="touchSensRange">Touch Sensitivity</label>
+                <input type="range" id="touchSensRange" min="1" max="10" value="5">
+                <span id="touchSensValue" class="setting-value">5</span>
+            </div>
+            <div class="setting-row">
+                <label for="invertYToggle">Invert Look Y</label>
+                <input type="checkbox" id="invertYToggle">
+                <span id="invertYValue" class="setting-value">Off</span>
+            </div>
+            <div class="setting-row">
+                <label for="leftHandedToggle">Left-Handed</label>
+                <input type="checkbox" id="leftHandedToggle">
+                <span id="leftHandedValue" class="setting-value">Off</span>
+            </div>
+            <p class="settings-hint">Auto-detect enables touch controls on phones and tablets. Left-Handed swaps the movement stick and look pad.</p>
+
             <button id="audioPreviewBtn" class="back-btn small-btn">Test Audio</button>
             <button id="closeSettings" class="back-btn">Back</button>
         </div>
@@ -143,6 +172,24 @@
                 <button id="loadInGameBtn">Load Game</button>
                 <button id="exitBtn">Exit to Menu</button>
             </div>
+        </div>
+    </div>
+
+    <div id="mobileControls" aria-hidden="true">
+        <div id="mc-top">
+            <button id="mc-btn-pause" class="mc-icon-btn" type="button" aria-label="Pause">⏸</button>
+            <button id="mc-btn-inventory" class="mc-icon-btn" type="button" aria-label="Inventory">🎒</button>
+        </div>
+        <div id="mc-lookpad" aria-label="Look pad"></div>
+        <div id="mc-joystick" aria-label="Movement joystick">
+            <div id="mc-joystick-knob"></div>
+        </div>
+        <div id="mc-action-cluster">
+            <button id="mc-btn-fish" class="mc-action-btn small" type="button" aria-label="Fish">🎣</button>
+            <button id="mc-btn-sprint" class="mc-action-btn small toggle" type="button" aria-label="Sprint">⚡</button>
+            <button id="mc-btn-crouch" class="mc-action-btn small toggle" type="button" aria-label="Crouch">⬇</button>
+            <button id="mc-btn-jump" class="mc-action-btn medium" type="button" aria-label="Jump">⤴</button>
+            <button id="mc-btn-interact" class="mc-action-btn large" type="button" aria-label="Interact">✊</button>
         </div>
     </div>
 

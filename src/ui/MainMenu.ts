@@ -51,11 +51,15 @@ export class MainMenu {
 
     private _initSettingsUI(): void {
         const s = SettingsManager.load();
-        
+
         (document.getElementById("sensRange") as HTMLInputElement).value = s.sensitivity.toString();
         (document.getElementById("volRange") as HTMLInputElement).value = s.volume.toString();
         (document.getElementById("fogRange") as HTMLInputElement).value = (s.fogDensity).toString();
         (document.getElementById("ppToggle") as HTMLInputElement).checked = s.postProcessing;
+        (document.getElementById("touchModeSelect") as HTMLSelectElement).value = s.touchControls;
+        (document.getElementById("touchSensRange") as HTMLInputElement).value = s.touchSensitivity.toString();
+        (document.getElementById("invertYToggle") as HTMLInputElement).checked = s.invertY;
+        (document.getElementById("leftHandedToggle") as HTMLInputElement).checked = s.leftHanded;
         this._updateSettingLabels();
     }
 
@@ -64,11 +68,16 @@ export class MainMenu {
         const volRange = document.getElementById("volRange") as HTMLInputElement;
         const fogRange = document.getElementById("fogRange") as HTMLInputElement;
         const ppToggle = document.getElementById("ppToggle") as HTMLInputElement;
+        const touchModeSelect = document.getElementById("touchModeSelect") as HTMLSelectElement;
+        const touchSensRange = document.getElementById("touchSensRange") as HTMLInputElement;
+        const invertYToggle = document.getElementById("invertYToggle") as HTMLInputElement;
+        const leftHandedToggle = document.getElementById("leftHandedToggle") as HTMLInputElement;
         const previewBtn = document.getElementById("audioPreviewBtn");
 
-        [sensRange, fogRange, ppToggle].forEach(input => {
+        [sensRange, fogRange, ppToggle, touchSensRange, invertYToggle, leftHandedToggle].forEach(input => {
             input.addEventListener("input", () => this._updateSettingLabels());
         });
+        touchModeSelect.addEventListener("change", () => this._updateSettingLabels());
 
         volRange.addEventListener("input", () => {
             this._updateSettingLabels();
@@ -85,18 +94,36 @@ export class MainMenu {
         const volRange = document.getElementById("volRange") as HTMLInputElement;
         const fogRange = document.getElementById("fogRange") as HTMLInputElement;
         const ppToggle = document.getElementById("ppToggle") as HTMLInputElement;
+        const touchModeSelect = document.getElementById("touchModeSelect") as HTMLSelectElement;
+        const touchSensRange = document.getElementById("touchSensRange") as HTMLInputElement;
+        const invertYToggle = document.getElementById("invertYToggle") as HTMLInputElement;
+        const leftHandedToggle = document.getElementById("leftHandedToggle") as HTMLInputElement;
+
         document.getElementById("sensValue")!.innerText = sensRange.value;
         document.getElementById("volValue")!.innerText = `${volRange.value}%`;
         document.getElementById("fogValue")!.innerText = `${fogRange.value}/10`;
         document.getElementById("qualityValue")!.innerText = ppToggle.checked ? "High" : "Low GPU";
+
+        const touchLabel = touchModeSelect.value === "auto" ? "Auto" :
+                           touchModeSelect.value === "on" ? "On" : "Off";
+        document.getElementById("touchModeValue")!.innerText = touchLabel;
+        document.getElementById("touchSensValue")!.innerText = touchSensRange.value;
+        document.getElementById("invertYValue")!.innerText = invertYToggle.checked ? "On" : "Off";
+        document.getElementById("leftHandedValue")!.innerText = leftHandedToggle.checked ? "On" : "Off";
     }
 
     private _saveSettings(): void {
+        const touchMode = (document.getElementById("touchModeSelect") as HTMLSelectElement).value as
+            "auto" | "on" | "off";
         SettingsManager.save({
             sensitivity: parseInt((document.getElementById("sensRange") as HTMLInputElement).value),
             volume: parseInt((document.getElementById("volRange") as HTMLInputElement).value),
             fogDensity: parseInt((document.getElementById("fogRange") as HTMLInputElement).value),
-            postProcessing: (document.getElementById("ppToggle") as HTMLInputElement).checked
+            postProcessing: (document.getElementById("ppToggle") as HTMLInputElement).checked,
+            touchControls: touchMode,
+            touchSensitivity: parseInt((document.getElementById("touchSensRange") as HTMLInputElement).value),
+            invertY: (document.getElementById("invertYToggle") as HTMLInputElement).checked,
+            leftHanded: (document.getElementById("leftHandedToggle") as HTMLInputElement).checked
         });
     }
 

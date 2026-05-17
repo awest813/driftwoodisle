@@ -43,12 +43,22 @@ export class InteractionSystem {
         this._scene.onPointerObservable.add((pointerInfo) => {
             if (pointerInfo.type === PointerEventTypes.POINTERDOWN) {
                 if (pointerInfo.event.button !== 0) return;
-                if (this._currentInteractable) {
-                    SoundManager.instance?.play("punch");
-                    this._currentInteractable.interact(this._inventory, this._hud, this._stats);
-                }
+                // In mobile mode the dedicated on-screen Interact button handles this;
+                // ignore stray canvas pointer events so look-pad swipes don't pick fruit.
+                if ((window as any).game?.playerController?.isMobileMode) return;
+                this.triggerInteract();
             }
         });
+    }
+
+    public triggerInteract(): void {
+        if (!this._currentInteractable) return;
+        SoundManager.instance?.play("punch");
+        this._currentInteractable.interact(this._inventory, this._hud, this._stats);
+    }
+
+    public get hasTarget(): boolean {
+        return this._currentInteractable !== null;
     }
 
     private _update(): void {
