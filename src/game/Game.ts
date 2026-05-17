@@ -21,6 +21,7 @@ export class Game {
     private _craftingSystem: any;
     private _buildingSystem: any;
     private _interactionSystem: any;
+    private _mobileControls: any;
 
     public get inventory() { return this._inventory; }
     public get stats() { return this._stats; }
@@ -32,6 +33,7 @@ export class Game {
     public get craftingSystem() { return this._craftingSystem; }
     public get buildingSystem() { return this._buildingSystem; }
     public get interactionSystem() { return this._interactionSystem; }
+    public get mobileControls() { return this._mobileControls; }
 
     constructor(canvasId: string) {
         this._canvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -128,6 +130,7 @@ export class Game {
             await LoadingScreen.step("Listening for tides and trails", 0.72, async () => {
                 await this._setupInteraction();
                 await this._setupFishing();
+                await this._setupMobileControls();
             });
 
             const { SaveSystem } = await import("../save/SaveSystem");
@@ -192,6 +195,11 @@ export class Game {
     private async _setupFishing(): Promise<void> {
         const { FishingSystem } = await import("../interaction/FishingSystem");
         this._fishing = new FishingSystem(this._scene, this._inventory, this._hud);
+    }
+
+    private async _setupMobileControls(): Promise<void> {
+        const { MobileControls } = await import("../ui/MobileControls");
+        this._mobileControls = new MobileControls();
     }
 
     private async _setupSystems(): Promise<void> {

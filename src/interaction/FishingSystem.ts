@@ -65,6 +65,10 @@ export class FishingSystem {
         this._useFishingRod();
     }
 
+    public triggerFish(): void {
+        this._tryUseFishingRod();
+    }
+
     private _useFishingRod(): void {
         if (this._inventory.getQuantity("fishingRod") <= 0) {
             SoundManager.instance?.play("error");

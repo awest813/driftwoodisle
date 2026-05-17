@@ -149,6 +149,37 @@
     line-height: 1.35;
 }
 
+.settings-subheader {
+    margin: 24px 0 12px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--leather);
+    padding-bottom: 6px;
+    color: var(--leather);
+}
+
+#settingsMenu {
+    max-height: 88vh;
+    overflow-y: auto;
+}
+
+.setting-row select {
+    width: 100%;
+    background: var(--parchment);
+    color: var(--ink);
+    border: 2px solid var(--leather);
+    padding: 6px 10px;
+    font-family: var(--font-journal);
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.setting-row select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
 .back-btn {
     display: block;
     margin: 30px auto 0;
@@ -883,3 +914,246 @@ html, body {
         font-size: 24px;
     }
 }
+
+/* --- Mobile / Touch Controls --- */
+body.mobile-active .minecraft-hotbar {
+    /* Hotbar is keyboard-driven; hide it on touch to free up screen space */
+    display: none !important;
+}
+
+body.mobile-active #fpsCounter {
+    /* Push the FPS counter out of the way of the inventory button */
+    top: 70px;
+}
+
+#mobileControls {
+    position: absolute;
+    inset: 0;
+    z-index: 1500;
+    pointer-events: none;
+    display: none;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    font-family: var(--font-journal);
+}
+
+#mobileControls.active {
+    display: block;
+}
+
+#mc-top {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+    z-index: 2;
+}
+
+#mc-top .mc-icon-btn {
+    pointer-events: auto;
+}
+
+.mc-icon-btn {
+    background: rgba(20, 14, 8, 0.55);
+    color: var(--parchment);
+    border: 2px solid rgba(244, 236, 216, 0.55);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.08s ease, background 0.12s ease;
+    padding: 0;
+}
+
+.mc-icon-btn.pressed,
+.mc-icon-btn:active {
+    background: rgba(139, 69, 19, 0.75);
+    transform: scale(0.94);
+}
+
+#mc-lookpad {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 60%;
+    height: 100%;
+    pointer-events: auto;
+    background: transparent;
+    touch-action: none;
+}
+
+#mobileControls.left-handed #mc-lookpad {
+    right: auto;
+    left: 0;
+}
+
+#mc-joystick {
+    position: absolute;
+    bottom: 28px;
+    left: 28px;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, rgba(244,236,216,0.18) 0%, rgba(244,236,216,0.08) 60%, rgba(0,0,0,0.0) 75%);
+    border: 2px solid rgba(244, 236, 216, 0.5);
+    pointer-events: auto;
+    touch-action: none;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.45), inset 0 0 18px rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#mobileControls.left-handed #mc-joystick {
+    left: auto;
+    right: 28px;
+}
+
+#mc-joystick-knob {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(244, 236, 216, 0.85);
+    border: 2px solid var(--leather);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.45);
+    pointer-events: none;
+    transition: transform 0.04s linear;
+}
+
+#mc-action-cluster {
+    position: absolute;
+    bottom: 28px;
+    right: 28px;
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    grid-template-areas:
+        "fish    interact"
+        "sprint  interact"
+        "crouch  jump";
+    gap: 10px;
+    align-items: end;
+    justify-items: end;
+    pointer-events: none;
+}
+
+#mobileControls.left-handed #mc-action-cluster {
+    right: auto;
+    left: 28px;
+    grid-template-areas:
+        "interact fish"
+        "interact sprint"
+        "jump     crouch";
+    justify-items: start;
+}
+
+#mc-action-cluster > button {
+    pointer-events: auto;
+}
+
+.mc-action-btn {
+    background: rgba(20, 14, 8, 0.55);
+    color: var(--parchment);
+    border: 2px solid rgba(244, 236, 216, 0.55);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.08s ease, background 0.12s ease, border-color 0.12s ease;
+    padding: 0;
+}
+
+.mc-action-btn.small {
+    width: 52px;
+    height: 52px;
+    font-size: 1.3rem;
+}
+
+.mc-action-btn.medium {
+    width: 64px;
+    height: 64px;
+    font-size: 1.6rem;
+}
+
+.mc-action-btn.large {
+    width: 86px;
+    height: 86px;
+    font-size: 2.1rem;
+    background: rgba(139, 69, 19, 0.65);
+    border-color: rgba(244, 236, 216, 0.85);
+}
+
+#mc-btn-interact { grid-area: interact; }
+#mc-btn-jump     { grid-area: jump; }
+#mc-btn-sprint   { grid-area: sprint; }
+#mc-btn-crouch   { grid-area: crouch; }
+#mc-btn-fish     { grid-area: fish; }
+
+.mc-action-btn.pressed,
+.mc-action-btn:active {
+    transform: scale(0.92);
+    background: rgba(139, 69, 19, 0.85);
+}
+
+.mc-action-btn.toggle.toggled {
+    background: rgba(255, 210, 118, 0.85);
+    color: var(--ink);
+    border-color: #fff7e0;
+    box-shadow: 0 0 12px rgba(255, 210, 118, 0.55);
+}
+
+@media (max-width: 760px) {
+    #mc-joystick {
+        width: 130px;
+        height: 130px;
+        bottom: 20px;
+        left: 20px;
+    }
+    #mobileControls.left-handed #mc-joystick {
+        right: 20px;
+    }
+    #mc-joystick-knob {
+        width: 56px;
+        height: 56px;
+    }
+    #mc-action-cluster {
+        bottom: 20px;
+        right: 20px;
+        gap: 8px;
+    }
+    #mobileControls.left-handed #mc-action-cluster {
+        left: 20px;
+    }
+    .mc-action-btn.large {
+        width: 76px;
+        height: 76px;
+        font-size: 1.9rem;
+    }
+    .mc-action-btn.medium {
+        width: 58px;
+        height: 58px;
+        font-size: 1.5rem;
+    }
+    .mc-action-btn.small {
+        width: 48px;
+        height: 48px;
+        font-size: 1.2rem;
+    }
+}
+

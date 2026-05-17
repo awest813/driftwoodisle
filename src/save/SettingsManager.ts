@@ -1,8 +1,14 @@
+export type TouchControlsMode = "auto" | "on" | "off";
+
 export interface GameSettings {
     sensitivity: number;
     volume: number;
     fogDensity: number;
     postProcessing: boolean;
+    touchControls: TouchControlsMode;
+    touchSensitivity: number;
+    invertY: boolean;
+    leftHanded: boolean;
 }
 
 export class SettingsManager {
@@ -10,7 +16,11 @@ export class SettingsManager {
         sensitivity: 2000,
         volume: 50,
         fogDensity: 5,
-        postProcessing: false
+        postProcessing: false,
+        touchControls: "auto",
+        touchSensitivity: 5,
+        invertY: false,
+        leftHanded: false
     };
 
     public static load(): GameSettings {
@@ -54,7 +64,14 @@ export class SettingsManager {
         }
 
         (window as any).soundManager?.setMasterVolume(this._settings.volume / 100);
-        console.log(`Settings applied: Sens=${this._settings.sensitivity}, Vol=${this._settings.volume}, Fog=${this._settings.fogDensity}`);
+
+        // Apply mobile control settings (auto-detect, enable/disable, sensitivity, etc.)
+        const mobile = (window as any).mobileControls;
+        if (mobile?.applySettings) {
+            mobile.applySettings(this._settings);
+        }
+
+        console.log(`Settings applied: Sens=${this._settings.sensitivity}, Vol=${this._settings.volume}, Fog=${this._settings.fogDensity}, Touch=${this._settings.touchControls}`);
     }
 
     public static previewVolume(volume: number): void {
@@ -67,11 +84,18 @@ export class SettingsManager {
     }
 
     private static _sanitize(settings: Partial<GameSettings>): GameSettings {
+        const touchMode = settings.touchControls;
+        const validTouch: TouchControlsMode =
+            touchMode === "on" || touchMode === "off" || touchMode === "auto" ? touchMode : "auto";
         return {
             sensitivity: this._clamp(Math.round(settings.sensitivity ?? 2000), 100, 5000),
             volume: this._clamp(Math.round(settings.volume ?? 50), 0, 100),
             fogDensity: this._clamp(Math.round(settings.fogDensity ?? 5), 0, 10),
-            postProcessing: Boolean(settings.postProcessing ?? false)
+            postProcessing: Boolean(settings.postProcessing ?? false),
+            touchControls: validTouch,
+            touchSensitivity: this._clamp(Math.round(settings.touchSensitivity ?? 5), 1, 10),
+            invertY: Boolean(settings.invertY ?? false),
+            leftHanded: Boolean(settings.leftHanded ?? false)
         };
     }
 

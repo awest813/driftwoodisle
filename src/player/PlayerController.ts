@@ -30,11 +30,18 @@ export class PlayerController {
     private _isCrouching: boolean = false;
     private _crouchY: number = 1.0;
 
+    // External (touch) input
+    private _mobileMode: boolean = false;
+    private _externalMoveForward: number = 0;
+    private _externalMoveRight: number = 0;
+    private _externalSprint: boolean = false;
+    private _externalCrouch: boolean = false;
+
     constructor(scene: Scene, canvas: HTMLCanvasElement, stats: any) {
         this._scene = scene;
         this._canvas = canvas;
         this._stats = stats;
-        
+
         this._setupCamera();
         this._setupInput();
         this._setupPointerLock();
@@ -51,7 +58,7 @@ export class PlayerController {
         this._camera.checkCollisions = true;
         this._camera.applyGravity = true;
         this._camera.ellipsoid = new Vector3(0.8, 0.9, 0.8);
-        
+
         this._camera.speed = this._walkSpeed;
         this._camera.angularSensibility = 1500;
         this._camera.inertia = 0.85;
@@ -78,20 +85,34 @@ export class PlayerController {
         forward.normalize();
         right.normalize();
 
-        if (this._isKeyDown("KeyW", "ArrowUp")) direction.addInPlace(forward);
-        if (this._isKeyDown("KeyS", "ArrowDown")) direction.subtractInPlace(forward);
-        if (this._isKeyDown("KeyD", "ArrowRight")) direction.addInPlace(right);
-        if (this._isKeyDown("KeyA", "ArrowLeft")) direction.subtractInPlace(right);
+        let analogMagnitude = 0;
 
-        if (direction.lengthSquared() === 0) return;
+        if (this._mobileMode &&
+            (Math.abs(this._externalMoveForward) > 0.001 || Math.abs(this._externalMoveRight) > 0.001)) {
+            direction.addInPlace(forward.scale(this._externalMoveForward));
+            direction.addInPlace(right.scale(this._externalMoveRight));
+            analogMagnitude = Math.min(1, Math.hypot(this._externalMoveForward, this._externalMoveRight));
+        } else {
+            if (this._isKeyDown("KeyW", "ArrowUp")) direction.addInPlace(forward);
+            if (this._isKeyDown("KeyS", "ArrowDown")) direction.subtractInPlace(forward);
+            if (this._isKeyDown("KeyD", "ArrowRight")) direction.addInPlace(right);
+            if (this._isKeyDown("KeyA", "ArrowLeft")) direction.subtractInPlace(right);
+            if (direction.lengthSquared() > 0) analogMagnitude = 1;
+        }
+
+        if (analogMagnitude === 0) return;
 
         direction.normalize();
         const deltaScale = Math.min(this._scene.getEngine().getDeltaTime(), 33.33) / (1000 / 60);
         const speed = this._isCrouching ? this._crouchSpeed : this._currentSpeed;
-        this._camera.position.addInPlace(direction.scale(speed * deltaScale));
+        this._camera.position.addInPlace(direction.scale(speed * analogMagnitude * deltaScale));
     }
 
     private _isMovingInput(): boolean {
+        if (this._mobileMode &&
+            (Math.abs(this._externalMoveForward) > 0.001 || Math.abs(this._externalMoveRight) > 0.001)) {
+            return true;
+        }
         return this._isKeyDown("KeyW", "ArrowUp", "KeyS", "ArrowDown", "KeyA", "ArrowLeft", "KeyD", "ArrowRight");
     }
 
@@ -101,12 +122,12 @@ export class PlayerController {
 
     private _handleHeadBob(): void {
         const isMoving = this._isMovingInput();
-        
+
         if (isMoving) {
             const speedFactor = this._camera.speed / this._runSpeed;
             const delta = this._scene.getEngine().getDeltaTime() * 0.001;
             this._bobTime += delta * this._bobFrequency * (speedFactor + 0.5);
-            
+
             const baseHeight = this._isCrouching ? this._crouchY : this._defaultCameraY;
             const bobOffset = Math.sin(this._bobTime) * this._bobHeight;
             this._camera.position.y = baseHeight + bobOffset;
@@ -118,12 +139,17 @@ export class PlayerController {
     }
 
     private _handleCrouch(): void {
+        const isCrouching = this._isCrouching || (this._mobileMode && this._externalCrouch);
+        this._isCrouching = isCrouching;
         const targetSpeed = this._isCrouching ? this._crouchSpeed : (this._currentSpeed || this._walkSpeed);
         this._camera.speed = Scalar.Lerp(this._camera.speed, targetSpeed, 0.1);
     }
 
     private _handleStamina(): void {
         const isMoving = this._isMovingInput();
+        if (this._mobileMode && this._externalSprint && !this._isCrouching) {
+            this._currentSpeed = this._runSpeed;
+        }
         const isSprinting = this._camera.speed > this._walkSpeed + 0.1 && isMoving && !this._isCrouching;
 
         if (isMoving) {
@@ -135,6 +161,7 @@ export class PlayerController {
         if (isSprinting) {
             if (!this._stats.useStamina(0.5)) {
                 this._currentSpeed = this._walkSpeed;
+                if (this._mobileMode) this._externalSprint = false;
             }
         } else {
             this._stats.restoreStamina(0.2);
@@ -155,17 +182,14 @@ export class PlayerController {
             if (e.shiftKey && !this._isCrouching) {
                 this._currentSpeed = this._runSpeed;
             }
-            
+
             if (e.code === "ControlLeft" || e.code === "KeyC") {
                 this._isCrouching = true;
             }
 
             // Jump logic
             if (e.code === "Space" && !this._isCrouching) {
-                // Ground check: if Y is close to land (simplified)
-                if (this._camera.position.y < 2.5) {
-                    this._camera.cameraDirection.y += 0.8;
-                }
+                this._tryJump();
             }
         });
 
@@ -179,6 +203,13 @@ export class PlayerController {
                 this._isCrouching = false;
             }
         });
+    }
+
+    private _tryJump(): void {
+        // Ground check: if Y is close to land (simplified)
+        if (this._camera.position.y < 2.5) {
+            this._camera.cameraDirection.y += 0.8;
+        }
     }
 
     private _showPauseMenu(): void {
@@ -200,12 +231,14 @@ export class PlayerController {
 
     private _setupPointerLock(): void {
         this._canvas.addEventListener("click", () => {
+            if (this._mobileMode) return;
             if (!this._canRequestPointerLock()) return;
             this._requestPointerLock();
         });
 
         this._scene.onPointerObservable.add((pointerInfo) => {
             if (pointerInfo.type === PointerEventTypes.POINTERDOWN) {
+                if (this._mobileMode) return;
                 if (!this._canRequestPointerLock()) return;
                 this._requestPointerLock();
             }
@@ -221,18 +254,18 @@ export class PlayerController {
                 this._camera.attachControl(this._canvas, true);
                 if (escMenu) escMenu.style.display = "none";
                 craftingMenu?.classList.remove("active");
-            } else if (this._hasEnteredPointerLock) {
+            } else if (this._hasEnteredPointerLock && !this._mobileMode) {
                 this._pressedKeys.clear();
                 this._camera.detachControl();
-                
+
                 // Only show pause menu if crafting menu is not open
                 const isCraftingOpen = craftingMenu && craftingMenu.classList.contains("active");
-                
+
                 const victoryMenu = document.getElementById("victoryScreen");
                 const gameOverMenu = document.getElementById("gameOverScreen");
-                const isGameOver = (victoryMenu && victoryMenu.style.display === "flex") || 
+                const isGameOver = (victoryMenu && victoryMenu.style.display === "flex") ||
                                    (gameOverMenu && gameOverMenu.style.display === "flex");
-                
+
                 if (!isCraftingOpen && !isGameOver) {
                     if (escMenu) escMenu.style.display = "flex";
                 }
@@ -258,6 +291,7 @@ export class PlayerController {
     }
 
     private _canRequestPointerLock(): boolean {
+        if (this._mobileMode) return false;
         const mainMenu = document.getElementById("mainMenu");
         const escMenu = document.getElementById("escMenu");
         const craftingMenu = document.getElementById("craftingMenu");
@@ -274,5 +308,74 @@ export class PlayerController {
 
     public get camera(): FreeCamera {
         return this._camera;
+    }
+
+    // --- Mobile / external input API ---
+
+    public setMobileMode(enabled: boolean): void {
+        if (this._mobileMode === enabled) return;
+        this._mobileMode = enabled;
+        if (enabled) {
+            // Drop any held keys and detach the camera's default mouse/touch look
+            this._pressedKeys.clear();
+            this._externalMoveForward = 0;
+            this._externalMoveRight = 0;
+            this._externalSprint = false;
+            this._externalCrouch = false;
+            this._camera.detachControl();
+            if (document.pointerLockElement === this._canvas) {
+                document.exitPointerLock();
+            }
+        } else {
+            this._externalMoveForward = 0;
+            this._externalMoveRight = 0;
+            this._externalSprint = false;
+            this._externalCrouch = false;
+            this._camera.attachControl(this._canvas, true);
+        }
+    }
+
+    public get isMobileMode(): boolean {
+        return this._mobileMode;
+    }
+
+    public setExternalMove(forward: number, right: number): void {
+        this._externalMoveForward = Math.max(-1, Math.min(1, forward));
+        this._externalMoveRight = Math.max(-1, Math.min(1, right));
+    }
+
+    public setExternalSprint(active: boolean): void {
+        this._externalSprint = active;
+        if (active && !this._isCrouching) {
+            this._currentSpeed = this._runSpeed;
+        } else if (!active) {
+            this._currentSpeed = this._walkSpeed;
+        }
+    }
+
+    public setExternalCrouch(active: boolean): void {
+        this._externalCrouch = active;
+        this._isCrouching = active || this._isKeyDown("ControlLeft", "KeyC");
+    }
+
+    public applyExternalLook(deltaXPx: number, deltaYPx: number, sensitivityScale: number = 1, invertY: boolean = false): void {
+        // Touch look uses a per-pixel rotation rate. The base rate (~0.0045 rad/px) feels right
+        // on a phone-sized screen and is then scaled by the user-configurable sensitivity slider.
+        const base = 0.0045;
+        const yaw = deltaXPx * base * sensitivityScale;
+        const pitch = (invertY ? -deltaYPx : deltaYPx) * base * sensitivityScale;
+        this._camera.rotation.y += yaw;
+        const newPitch = this._camera.rotation.x + pitch;
+        const limit = Math.PI / 2 - 0.05;
+        this._camera.rotation.x = Math.max(-limit, Math.min(limit, newPitch));
+    }
+
+    public triggerJump(): void {
+        if (this._isCrouching) return;
+        this._tryJump();
+    }
+
+    public triggerPause(): void {
+        this._showPauseMenu();
     }
 }
