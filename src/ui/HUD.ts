@@ -157,12 +157,14 @@ export class HUD {
     public showVictory(): void {
         const el = document.getElementById("victoryScreen");
         if (el) el.style.display = "flex";
+        document.body.classList.add("run-ended");
         document.exitPointerLock();
     }
 
     public showGameOver(): void {
         const el = document.getElementById("gameOverScreen");
         if (el) el.style.display = "flex";
+        document.body.classList.add("run-ended");
         document.exitPointerLock();
     }
 }

@@ -19,18 +19,22 @@ export class MainMenu {
         const loadBtn = document.getElementById("loadGame") as HTMLButtonElement;
         const settingsBtn = document.getElementById("openSettings");
         const creditsBtn = document.getElementById("openCredits");
+        const controlsBtn = document.getElementById("openControls");
+        const continueSub = document.getElementById("continueSub");
 
         if (startBtn) startBtn.onclick = () => this._start(false);
-        
+
         if (loadBtn) {
             if (SaveSystem.hasSave()) {
                 loadBtn.disabled = false;
                 loadBtn.onclick = () => this._start(true);
+                if (continueSub) continueSub.textContent = "Pick up where you left off";
             }
         }
 
         if (settingsBtn) settingsBtn.onclick = () => this._showScreen("settingsMenu");
         if (creditsBtn) creditsBtn.onclick = () => this._showScreen("creditsMenu");
+        if (controlsBtn) controlsBtn.onclick = () => this._showScreen("controlsMenu");
 
         // Back buttons
         document.getElementById("closeSettings")!.onclick = () => {
@@ -38,6 +42,7 @@ export class MainMenu {
             this._showScreen("menuContent");
         };
         document.getElementById("closeCredits")!.onclick = () => this._showScreen("menuContent");
+        document.getElementById("closeControls")!.onclick = () => this._showScreen("menuContent");
 
         this._initSettingsUI();
         this._setupLiveSettings();
@@ -157,7 +162,7 @@ export class MainMenu {
             button.disabled = isStarting || (button.id === "loadGame" && !SaveSystem.hasSave());
         });
 
-        const startBtn = document.getElementById("startGame") as HTMLButtonElement | null;
-        if (startBtn) startBtn.textContent = isStarting ? "Loading..." : "New Entry";
+        const startLabel = document.querySelector<HTMLElement>("#startGame .btn-label");
+        if (startLabel) startLabel.textContent = isStarting ? "Loading…" : "New Journal";
     }
 }

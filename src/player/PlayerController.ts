@@ -150,7 +150,9 @@ export class PlayerController {
         if (this._mobileMode && this._externalSprint && !this._isCrouching) {
             this._currentSpeed = this._runSpeed;
         }
-        const isSprinting = this._camera.speed > this._walkSpeed + 0.1 && isMoving && !this._isCrouching;
+        // Detect sprint from intent (currentSpeed at run setting), not camera.speed which lerps and never
+        // quite reaches the old threshold of walkSpeed + 0.1.
+        const isSprinting = this._currentSpeed >= this._runSpeed - 0.001 && isMoving && !this._isCrouching;
 
         if (isMoving) {
             if (SoundManager.instance) {
@@ -158,14 +160,17 @@ export class PlayerController {
             }
         }
 
+        // Per-second drain so behaviour is framerate-independent. ~14s of sprint at full bar.
+        const dt = Math.min(this._scene.getEngine().getDeltaTime(), 100) / 1000;
+        this._stats.setSprinting(isSprinting);
         if (isSprinting) {
-            if (!this._stats.useStamina(0.5)) {
+            const drained = this._stats.useStamina(7 * dt);
+            if (!drained || this._stats.getData().stamina <= 0.01) {
                 this._currentSpeed = this._walkSpeed;
                 if (this._mobileMode) this._externalSprint = false;
             }
-        } else {
-            this._stats.restoreStamina(0.2);
         }
+        // Passive regen is handled centrally in PlayerStats while not sprinting.
     }
 
     private _setupInput(): void {

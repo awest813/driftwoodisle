@@ -253,10 +253,15 @@ export class BuildingSystem {
             mat.diffuseColor = new Color3(0.5, 0.2, 0.1);
             newStructure.material = mat;
             newStructure.checkCollisions = true;
+            newStructure.position = position;
+            newStructure.rotation.y = rotation;
 
             const fire = new ParticleSystem("fire", 100, this._scene);
             fire.particleTexture = ProceduralTextures.fireParticle(this._scene);
-            fire.emitter = newStructure.position.add(new Vector3(0, 0.2, 0));
+            // Use the mesh itself as the emitter so the flame stays on the firepit if it ever moves
+            fire.emitter = newStructure;
+            fire.minEmitBox = new Vector3(-0.05, 0.15, -0.05);
+            fire.maxEmitBox = new Vector3(0.05, 0.25, 0.05);
             fire.color1 = new Color4(1, 0.5, 0, 1.0);
             fire.color2 = new Color4(1, 0.1, 0, 1.0);
             fire.minSize = 0.2;
@@ -294,13 +299,56 @@ export class BuildingSystem {
             mat.diffuseColor = new Color3(0.4, 0.6, 0.3);
             newStructure.material = mat;
             newStructure.checkCollisions = true;
+            newStructure.position = position;
+            newStructure.rotation.y = rotation;
+
+            newStructure.metadata = {
+                interactable: {
+                    id: "shelter_" + Date.now(),
+                    name: "Shelter",
+                    prompt: "[Click] Sleep until dawn",
+                    interact: (_inventory: any, hud: any, stats: any) => {
+                        BuildingSystem.sleepInShelter(hud, stats);
+                    }
+                } as Interactable
+            };
             this._hud.showNotification("Shelter constructed!");
             SoundManager.instance?.play("build");
         } else {
             return;
         }
+    }
 
-        newStructure.position = position;
-        newStructure.rotation.y = rotation;
+    public static sleepInShelter(hud: HUD, stats: any): void {
+        const cycle = (window as any).game?.dayNight;
+        if (!cycle) return;
+
+        const t = cycle.time;
+        const isNight = t > 0.78 || t < 0.22;
+        if (!isNight) {
+            SoundManager.instance?.play("error");
+            hud.showNotification("It's too bright to sleep. Try after dusk.");
+            return;
+        }
+
+        // Fade to black, jump time, restore, fade back
+        const fade = document.createElement("div");
+        fade.className = "sleep-fade";
+        document.body.appendChild(fade);
+        SoundManager.instance?.play("menu");
+
+        requestAnimationFrame(() => fade.classList.add("on"));
+
+        setTimeout(() => {
+            cycle.setTime(0.27); // ~6:30am
+            stats.restoreHealth(30);
+            stats.restoreStamina(100);
+            stats.restoreWarmth(35);
+            stats.decreaseHunger(8);
+            stats.decreaseThirst(12);
+            hud.showNotification("You slept until dawn. (+30 HP, fully rested)");
+            fade.classList.remove("on");
+            setTimeout(() => fade.remove(), 600);
+        }, 700);
     }
 }

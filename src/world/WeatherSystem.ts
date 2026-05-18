@@ -17,20 +17,26 @@ export class WeatherSystem {
     private _clouds: Mesh[] = [];
     private _isRaining: boolean = false;
     private _windTime: number = 0;
-    
+    private _rainEndTimeout: number | null = null;
+
     constructor(scene: Scene, stats: PlayerStats) {
         this._scene = scene;
         this._stats = stats;
-        
+
         this._setupClouds();
         this._setupRain();
-        
-        // Randomly toggle weather
+
+        // Roll for weather every ~90s. ~20% chance to start rain when clear, otherwise rain self-stops.
         setInterval(() => {
-            if (Math.random() > 0.7) {
-                this.toggleRain(!this._isRaining);
+            if (this._isRaining) return;
+            if (Math.random() < 0.20) {
+                this.toggleRain(true);
+                // Auto-clear after 45-90s so rain has a natural rhythm instead of nagging
+                const duration = 45000 + Math.random() * 45000;
+                if (this._rainEndTimeout !== null) window.clearTimeout(this._rainEndTimeout);
+                this._rainEndTimeout = window.setTimeout(() => this.toggleRain(false), duration);
             }
-        }, 20000);
+        }, 90000);
     }
 
     private _setupRain(): void {
@@ -61,22 +67,27 @@ export class WeatherSystem {
         setInterval(() => {
             if (this._isRaining) {
                 this._stats.restoreThirst(1.0);
-                
+
                 let nearFire = false;
+                let underShelter = false;
                 if (this._scene.activeCamera) {
                     const p = this._scene.activeCamera.position;
                     this._scene.meshes.forEach(m => {
                         if (m.name === "campfire" && Vector3.Distance(m.position, p) < 6) {
                             nearFire = true;
                         }
+                        if (m.name === "shelter" && Vector3.Distance(m.position, p) < 3.5) {
+                            underShelter = true;
+                        }
                     });
                 }
 
-                if (!nearFire) {
-                    this._stats.decreaseWarmth(2.5);
-                } else {
+                if (nearFire) {
                     this._stats.restoreWarmth(2.0);
+                } else if (!underShelter) {
+                    this._stats.decreaseWarmth(2.5);
                 }
+                // Under shelter (but no fire): rain is blocked, warmth holds steady.
             }
         }, 1000);
 
