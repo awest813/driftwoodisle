@@ -888,6 +888,30 @@ html, body {
     z-index: 4000;
 }
 
+/* Hide HUD when the run ends so the victory/game-over card breathes */
+body.run-ended #hud,
+body.run-ended #compass,
+body.run-ended #timeTempUI,
+body.run-ended #crosshair,
+body.run-ended #fpsCounter,
+body.run-ended #mobileControls {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+
+/* Sleep fade overlay */
+.sleep-fade {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    opacity: 0;
+    z-index: 4500;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+}
+.sleep-fade.on { opacity: 1; }
+
 .loading-page {
     padding: 44px 56px;
     min-width: 360px;

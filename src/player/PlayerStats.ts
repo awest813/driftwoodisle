@@ -17,6 +17,7 @@ export class PlayerStats {
         warmth: 100
     };
     private _listeners: StatsCallback[] = [];
+    private _isSprinting: boolean = false;
 
     constructor() {
         // Survival loop
@@ -24,11 +25,16 @@ export class PlayerStats {
             this.decreaseHunger(0.02);
             this.decreaseThirst(0.6);
             if (this._stats.warmth < 100) this.restoreWarmth(0.5);
-            if (this._stats.stamina < 100 && this._stats.hunger > 10 && this._stats.thirst > 10) {
-                this.restoreStamina(5);
+            // Don't refund stamina while the player is actively sprinting — that defeats the cost.
+            if (!this._isSprinting && this._stats.stamina < 100 && this._stats.hunger > 10 && this._stats.thirst > 10) {
+                this.restoreStamina(8);
             }
             this._checkHealthDrain();
         }, 1000);
+    }
+
+    public setSprinting(active: boolean): void {
+        this._isSprinting = active;
     }
 
     private _checkHealthDrain(): void {

@@ -527,10 +527,12 @@ export class Island {
                 interact: (inventory: any, hud: any) => {
                     SoundManager.instance?.play("crab");
                     inventory.addItem("fish", 1);
-                    hud.showNotification("Caught Crab (+1 Raw Meat)");
+                    hud.showNotification("Caught Crab (+1 Raw Fish)");
                     crab.dispose();
                     setTimeout(() => {
-                        this._createCrab(spawnPosition, `${id}_respawn_${Date.now()}`);
+                        if (this._baseCrab && !this._baseCrab.isDisposed()) {
+                            this._createCrab(spawnPosition, `${id}_respawn_${Date.now()}`);
+                        }
                     }, 45000);
                 }
             } as Interactable

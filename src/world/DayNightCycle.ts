@@ -7,7 +7,7 @@ export class DayNightCycle {
     private _scene: Scene;
     private _sun: DirectionalLight;
     private _time: number = 0.3; // start in the morning
-    private _dayDuration: number = 600000; // 10 minutes for a full day
+    private _dayDuration: number = 960000; // 16 minutes for a full day (8 day / 8 night)
     private _day: number = 1;
     
     constructor(scene: Scene, sun: DirectionalLight) {
