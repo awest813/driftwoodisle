@@ -9,21 +9,68 @@
   </head>
   <body>
     <div id="mainMenu">
-        <div id="menuContent" class="journal-page">
-            <h1>DRIFTWOOD ISLE</h1>
-            <p>A Survival Journal</p>
-            <div class="controls-note">
-                <strong>Keyboard &amp; Mouse:</strong><br>
-                <b>WASD</b>: Move &nbsp;|&nbsp; <b>Mouse</b>: Look &nbsp;|&nbsp; <b>Shift</b>: Sprint<br>
-                <b>Click</b>: Interact &nbsp;|&nbsp; <b>Right Click Water</b>: Fish &nbsp;|&nbsp; <b>Tab/E</b>: Inventory &nbsp;|&nbsp; <b>ESC</b>: Pause<br>
-                <strong>Touch:</strong> Left stick to move, drag right side to look, on-screen buttons for actions
-            </div>
+        <div class="menu-vignette" aria-hidden="true"></div>
+        <div class="menu-waves" aria-hidden="true">
+            <span></span><span></span><span></span>
+        </div>
+
+        <div id="menuContent" class="journal-page menu-hero">
+            <div class="hero-seal" aria-hidden="true">⚓</div>
+            <h1>Driftwood Isle</h1>
+            <p class="hero-tagline">A Castaway's Journal</p>
+            <p class="hero-blurb" id="heroBlurb">Cast ashore with nothing but salt in your boots and a stub of pencil. Forage, build, and live to write tomorrow's page.</p>
+
             <div id="menuButtons">
-                <button id="startGame">New Entry</button>
-                <button id="loadGame" disabled>Continue</button>
-                <button id="openSettings">Settings</button>
-                <button id="openCredits">Credits</button>
+                <button id="loadGame" class="menu-btn primary" disabled>
+                    <span class="btn-label">Continue Journal</span>
+                    <span class="btn-sub" id="continueSub">No saved entries</span>
+                </button>
+                <button id="startGame" class="menu-btn">
+                    <span class="btn-label">New Journal</span>
+                    <span class="btn-sub">Wash ashore on a fresh isle</span>
+                </button>
+                <div class="menu-btn-row">
+                    <button id="openControls" class="menu-btn small">How to Play</button>
+                    <button id="openSettings" class="menu-btn small">Settings</button>
+                    <button id="openCredits" class="menu-btn small">Credits</button>
+                </div>
             </div>
+
+            <div class="hero-footer">
+                <span class="hero-version">v0.1 · driftwood build</span>
+            </div>
+        </div>
+
+        <div id="controlsMenu" class="journal-page" style="display:none">
+            <h2>How to Play</h2>
+            <div class="controls-grid">
+                <div class="controls-col">
+                    <h3 class="settings-subheader">Desktop</h3>
+                    <ul class="controls-list">
+                        <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>Move</span></li>
+                        <li><kbd>Mouse</kbd><span>Look around</span></li>
+                        <li><kbd>Shift</kbd><span>Sprint</span></li>
+                        <li><kbd>Space</kbd><span>Jump</span></li>
+                        <li><kbd>Click</kbd><span>Interact / use tool</span></li>
+                        <li><kbd>Right-Click</kbd><span>Fish at water's edge</span></li>
+                        <li><kbd>Tab</kbd><kbd>E</kbd><span>Backpack &amp; crafting</span></li>
+                        <li><kbd>Esc</kbd><span>Pause</span></li>
+                    </ul>
+                </div>
+                <div class="controls-col">
+                    <h3 class="settings-subheader">Touch</h3>
+                    <ul class="controls-list">
+                        <li><span class="kbd-glyph">◉</span><span>Left stick to move</span></li>
+                        <li><span class="kbd-glyph">↔</span><span>Drag right side to look</span></li>
+                        <li><span class="kbd-glyph">⤴</span><span>Jump button</span></li>
+                        <li><span class="kbd-glyph">✊</span><span>Interact button</span></li>
+                        <li><span class="kbd-glyph">🎣</span><span>Fish near water</span></li>
+                        <li><span class="kbd-glyph">🎒</span><span>Open backpack</span></li>
+                    </ul>
+                </div>
+            </div>
+            <p class="settings-hint">Tip: stay warm at night by the campfire — exposure drops faster after sundown.</p>
+            <button id="closeControls" class="back-btn">Back</button>
         </div>
 
         <div id="settingsMenu" class="journal-page" style="display:none">

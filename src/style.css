@@ -14,13 +14,111 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('./assets/images/splash.png') no-repeat center center;
+    background:
+        radial-gradient(ellipse at 50% 120%, rgba(20,40,60,0.55), transparent 60%),
+        linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.55)),
+        url('./assets/images/splash.png') no-repeat center center;
     background-size: cover;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 2000;
     font-family: var(--font-journal);
+    overflow: hidden;
+}
+
+.menu-vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%);
+    z-index: 1;
+}
+
+.menu-waves {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 120px;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.35;
+}
+
+.menu-waves span {
+    position: absolute;
+    left: -10%;
+    right: -10%;
+    height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(255,255,255,0.35), transparent 70%);
+    filter: blur(6px);
+    animation: driftWave 9s ease-in-out infinite;
+}
+.menu-waves span:nth-child(1) { bottom: 10px; animation-delay: 0s; }
+.menu-waves span:nth-child(2) { bottom: 40px; opacity: 0.6; animation-delay: -3s; animation-duration: 11s; }
+.menu-waves span:nth-child(3) { bottom: 75px; opacity: 0.35; animation-delay: -6s; animation-duration: 13s; }
+
+@keyframes driftWave {
+    0%, 100% { transform: translateX(-3%) scaleY(1); }
+    50%      { transform: translateX(3%) scaleY(1.15); }
+}
+
+.menu-hero {
+    position: relative;
+    z-index: 2;
+    animation: heroRise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes heroRise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero-seal {
+    position: absolute;
+    top: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--leather);
+    color: var(--parchment);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.45), inset 0 -3px 0 rgba(0,0,0,0.25);
+    border: 3px solid var(--parchment);
+    z-index: 3;
+}
+
+.hero-tagline {
+    margin: 6px 0 0;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    color: var(--leather);
+    opacity: 0.85;
+}
+
+.hero-blurb {
+    margin: 18px auto 0;
+    max-width: 440px;
+    font-style: italic;
+    line-height: 1.5;
+    color: rgba(44,44,44,0.85);
+}
+
+.hero-footer {
+    margin-top: 22px;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--leather);
+    opacity: 0.55;
 }
 
 .journal-page {
@@ -70,7 +168,14 @@
     line-height: 1.45;
 }
 
-#menuButtons,
+#menuButtons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+    margin-top: 26px;
+}
+
 .pause-buttons {
     display: flex;
     flex-direction: column;
@@ -79,22 +184,69 @@
     margin-top: 30px;
 }
 
-#menuButtons button,
+.menu-btn-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 6px;
+}
+
+.menu-btn,
 .pause-buttons button,
 .back-btn {
     background: var(--leather);
     border: none;
     color: var(--parchment);
-    padding: 12px 40px;
-    font-size: 1.2rem;
+    padding: 12px 24px;
+    font-size: 1.05rem;
     cursor: pointer;
     font-family: var(--font-journal);
-    transition: all 0.2s;
-    width: 250px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
     box-shadow: 4px 4px 0px var(--ink);
+    text-align: center;
+    letter-spacing: 1px;
 }
 
-#menuButtons button:hover:not(:disabled),
+.pause-buttons button,
+.back-btn {
+    width: 250px;
+    padding: 12px 40px;
+    font-size: 1.2rem;
+}
+
+.menu-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.menu-btn .btn-label {
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+}
+
+.menu-btn .btn-sub {
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    opacity: 0.75;
+    text-transform: uppercase;
+    font-style: italic;
+}
+
+.menu-btn.primary {
+    background: var(--accent);
+    box-shadow: 4px 4px 0px var(--ink), inset 0 0 0 2px rgba(255,255,255,0.08);
+}
+
+.menu-btn.small {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    letter-spacing: 2px;
+}
+
+.menu-btn:hover:not(:disabled),
 .pause-buttons button:hover:not(:disabled),
 .back-btn:hover {
     transform: translate(-2px, -2px);
@@ -102,10 +254,70 @@
     background: var(--ink);
 }
 
-#menuButtons button:disabled,
+.menu-btn.primary:hover:not(:disabled) {
+    background: #6b3410;
+}
+
+.menu-btn:disabled,
 .pause-buttons button:disabled {
-    opacity: 0.55;
+    opacity: 0.45;
     cursor: not-allowed;
+    filter: grayscale(0.4);
+}
+
+.controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 26px;
+    margin-top: 12px;
+    text-align: left;
+}
+
+.controls-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.controls-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+}
+
+.controls-list li span:last-child {
+    margin-left: auto;
+    text-align: right;
+    opacity: 0.85;
+}
+
+.controls-list kbd {
+    background: var(--leather);
+    color: var(--parchment);
+    font-family: var(--font-journal);
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 3px;
+    box-shadow: 0 2px 0 var(--ink);
+    min-width: 22px;
+    text-align: center;
+}
+
+.controls-list .kbd-glyph {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 24px;
+    background: var(--leather);
+    color: var(--parchment);
+    border-radius: 3px;
+    box-shadow: 0 2px 0 var(--ink);
+    font-size: 0.95rem;
 }
 
 .setting-row {
@@ -841,8 +1053,19 @@ html, body {
     }
 
     #menuContent h1 {
-        font-size: 3rem;
+        font-size: 2.6rem;
         letter-spacing: 2px;
+    }
+
+    .hero-blurb { font-size: 0.9rem; }
+
+    .menu-btn-row {
+        flex-direction: column;
+    }
+
+    .controls-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
     }
 
     .setting-row {
