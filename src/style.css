@@ -81,18 +81,12 @@
     top: -42px;
     left: 50%;
     transform: translateX(-50%);
-    width: 56px;
-    height: 56px;
+    width: 68px;
+    height: 68px;
     border-radius: 50%;
-    background: var(--leather);
-    color: var(--parchment);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.6rem;
-    box-shadow: 0 6px 14px rgba(0,0,0,0.45), inset 0 -3px 0 rgba(0,0,0,0.25);
-    border: 3px solid var(--parchment);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.5), 0 0 0 3px var(--parchment);
     z-index: 3;
+    display: block;
 }
 
 .hero-tagline {
@@ -1191,11 +1185,11 @@ body.mobile-active #fpsCounter {
 }
 
 .mc-icon-btn {
-    background: rgba(20, 14, 8, 0.55);
+    background: rgba(58, 40, 24, 0.7);
     color: var(--parchment);
-    border: 2px solid rgba(244, 236, 216, 0.55);
-    width: 48px;
-    height: 48px;
+    border: 2px solid rgba(244, 236, 216, 0.65);
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     font-size: 1.2rem;
     line-height: 1;
@@ -1203,8 +1197,9 @@ body.mobile-active #fpsCounter {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-    backdrop-filter: blur(4px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(0,0,0,0.3);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     -webkit-tap-highlight-color: transparent;
     transition: transform 0.08s ease, background 0.12s ease;
     padding: 0;
@@ -1212,8 +1207,8 @@ body.mobile-active #fpsCounter {
 
 .mc-icon-btn.pressed,
 .mc-icon-btn:active {
-    background: rgba(139, 69, 19, 0.75);
-    transform: scale(0.94);
+    background: rgba(139, 69, 19, 0.85);
+    transform: scale(0.92);
 }
 
 #mc-lookpad {
@@ -1225,6 +1220,30 @@ body.mobile-active #fpsCounter {
     pointer-events: auto;
     background: transparent;
     touch-action: none;
+}
+
+#mc-lookpad::after {
+    content: "drag to look";
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-journal);
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(244, 236, 216, 0.5);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    pointer-events: none;
+    animation: lookHintFade 5s ease-out forwards;
+    white-space: nowrap;
+}
+
+@keyframes lookHintFade {
+    0%   { opacity: 0; }
+    15%  { opacity: 1; }
+    70%  { opacity: 1; }
+    100% { opacity: 0; }
 }
 
 #mobileControls.left-handed #mc-lookpad {
@@ -1239,14 +1258,23 @@ body.mobile-active #fpsCounter {
     width: 150px;
     height: 150px;
     border-radius: 50%;
-    background: radial-gradient(circle at center, rgba(244,236,216,0.18) 0%, rgba(244,236,216,0.08) 60%, rgba(0,0,0,0.0) 75%);
-    border: 2px solid rgba(244, 236, 216, 0.5);
+    background: radial-gradient(circle at center, rgba(244,236,216,0.22) 0%, rgba(244,236,216,0.08) 60%, rgba(0,0,0,0.0) 78%);
+    border: 2px solid rgba(244, 236, 216, 0.55);
     pointer-events: auto;
     touch-action: none;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.45), inset 0 0 18px rgba(0,0,0,0.25);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5), inset 0 0 22px rgba(0,0,0,0.3);
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+#mc-joystick::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    border: 1px dashed rgba(244, 236, 216, 0.25);
+    pointer-events: none;
 }
 
 #mobileControls.left-handed #mc-joystick {
@@ -1272,9 +1300,9 @@ body.mobile-active #fpsCounter {
     display: grid;
     grid-template-columns: repeat(2, auto);
     grid-template-areas:
-        "fish    interact"
-        "sprint  interact"
-        "crouch  jump";
+        "fish    .       "
+        "sprint  jump    "
+        "crouch  interact";
     gap: 10px;
     align-items: end;
     justify-items: end;
@@ -1285,9 +1313,9 @@ body.mobile-active #fpsCounter {
     right: auto;
     left: 28px;
     grid-template-areas:
-        "interact fish"
-        "interact sprint"
-        "jump     crouch";
+        ".        fish   "
+        "jump     sprint "
+        "interact crouch ";
     justify-items: start;
 }
 
@@ -1296,40 +1324,42 @@ body.mobile-active #fpsCounter {
 }
 
 .mc-action-btn {
-    background: rgba(20, 14, 8, 0.55);
+    background: rgba(58, 40, 24, 0.7);
     color: var(--parchment);
-    border: 2px solid rgba(244, 236, 216, 0.55);
+    border: 2px solid rgba(244, 236, 216, 0.6);
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     line-height: 1;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-    backdrop-filter: blur(4px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(0,0,0,0.3);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     -webkit-tap-highlight-color: transparent;
     transition: transform 0.08s ease, background 0.12s ease, border-color 0.12s ease;
     padding: 0;
 }
 
 .mc-action-btn.small {
-    width: 52px;
-    height: 52px;
-    font-size: 1.3rem;
+    width: 56px;
+    height: 56px;
+    font-size: 1.35rem;
 }
 
 .mc-action-btn.medium {
-    width: 64px;
-    height: 64px;
+    width: 68px;
+    height: 68px;
     font-size: 1.6rem;
 }
 
 .mc-action-btn.large {
-    width: 86px;
-    height: 86px;
-    font-size: 2.1rem;
-    background: rgba(139, 69, 19, 0.65);
-    border-color: rgba(244, 236, 216, 0.85);
+    width: 92px;
+    height: 92px;
+    font-size: 2.2rem;
+    background: rgba(139, 69, 19, 0.78);
+    border-color: rgba(244, 236, 216, 0.9);
+    box-shadow: 0 5px 16px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(0,0,0,0.25), 0 0 0 4px rgba(244, 236, 216, 0.08);
 }
 
 #mc-btn-interact { grid-area: interact; }
@@ -1353,40 +1383,82 @@ body.mobile-active #fpsCounter {
 
 @media (max-width: 760px) {
     #mc-joystick {
-        width: 130px;
-        height: 130px;
-        bottom: 20px;
-        left: 20px;
+        width: 134px;
+        height: 134px;
+        bottom: 22px;
+        left: 22px;
     }
     #mobileControls.left-handed #mc-joystick {
-        right: 20px;
+        right: 22px;
     }
     #mc-joystick-knob {
-        width: 56px;
-        height: 56px;
+        width: 58px;
+        height: 58px;
     }
     #mc-action-cluster {
-        bottom: 20px;
-        right: 20px;
+        bottom: 22px;
+        right: 22px;
+        gap: 9px;
+    }
+    #mobileControls.left-handed #mc-action-cluster {
+        left: 22px;
+    }
+    .mc-action-btn.large {
+        width: 82px;
+        height: 82px;
+        font-size: 2rem;
+    }
+    .mc-action-btn.medium {
+        width: 62px;
+        height: 62px;
+        font-size: 1.55rem;
+    }
+    .mc-action-btn.small {
+        width: 52px;
+        height: 52px;
+        font-size: 1.25rem;
+    }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+    #mc-joystick {
+        width: 112px;
+        height: 112px;
+        bottom: 14px;
+        left: 14px;
+    }
+    #mobileControls.left-handed #mc-joystick {
+        right: 14px;
+    }
+    #mc-joystick-knob {
+        width: 50px;
+        height: 50px;
+    }
+    #mc-action-cluster {
+        bottom: 14px;
+        right: 14px;
         gap: 8px;
     }
     #mobileControls.left-handed #mc-action-cluster {
-        left: 20px;
+        left: 14px;
     }
     .mc-action-btn.large {
-        width: 76px;
-        height: 76px;
-        font-size: 1.9rem;
+        width: 72px;
+        height: 72px;
+        font-size: 1.75rem;
     }
     .mc-action-btn.medium {
-        width: 58px;
-        height: 58px;
-        font-size: 1.5rem;
+        width: 56px;
+        height: 56px;
+        font-size: 1.4rem;
     }
     .mc-action-btn.small {
         width: 48px;
         height: 48px;
-        font-size: 1.2rem;
+        font-size: 1.15rem;
     }
+    #mc-lookpad::after { top: 50px; }
+    #mc-top { top: 8px; left: 8px; right: 8px; }
+    .mc-icon-btn { width: 44px; height: 44px; font-size: 1.05rem; }
 }
 
