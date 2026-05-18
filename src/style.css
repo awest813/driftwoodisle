@@ -78,7 +78,7 @@
 
 .hero-seal {
     position: absolute;
-    top: -28px;
+    top: -42px;
     left: 50%;
     transform: translateX(-50%);
     width: 56px;
@@ -149,9 +149,10 @@
 }
 
 #menuContent h1 {
-    font-size: 4rem;
+    font-size: 3.4rem;
     margin: 0;
-    letter-spacing: 5px;
+    letter-spacing: 3px;
+    white-space: nowrap;
 }
 
 #menuContent > p {
@@ -265,10 +266,12 @@
     filter: grayscale(0.4);
 }
 
+#controlsMenu { max-width: 720px; }
+
 .controls-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 26px;
+    gap: 22px;
     margin-top: 12px;
     text-align: left;
 }
@@ -283,16 +286,22 @@
 }
 
 .controls-list li {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr;
     align-items: center;
-    gap: 8px;
-    font-size: 0.95rem;
+    gap: 10px;
+    font-size: 0.9rem;
 }
 
-.controls-list li span:last-child {
-    margin-left: auto;
-    text-align: right;
+.controls-list li > span:last-child {
     opacity: 0.85;
+}
+
+.controls-list li .keys {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    align-items: center;
 }
 
 .controls-list kbd {
@@ -1053,8 +1062,9 @@ html, body {
     }
 
     #menuContent h1 {
-        font-size: 2.6rem;
+        font-size: 2.4rem;
         letter-spacing: 2px;
+        white-space: normal;
     }
 
     .hero-blurb { font-size: 0.9rem; }
