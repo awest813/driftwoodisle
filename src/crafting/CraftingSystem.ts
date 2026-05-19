@@ -22,7 +22,7 @@ export class CraftingSystem {
         coconut: '🥥', berry: '🫐', fish: '🐟', rope: '🪢',
         cloth: '👕', scrap: '🔩', flint: '🪨',
         stoneAxe: '🪓', stonePickaxe: '⛏️', woodenSpear: '🔱', fishingRod: '🎣',
-        campfire: '🔥', shelter: '⛺', raft: '⛵'
+        campfire: '🔥', shelter: '⛺', raftProgress: '⛵'
     };
 
     constructor(inventory: Inventory, hud: HUD, buildingSystem: BuildingSystem, stats: PlayerStats) {
@@ -121,6 +121,7 @@ export class CraftingSystem {
         this._recipeListElement.innerHTML = "";
 
         Object.entries(recipes).forEach(([id, recipe]) => {
+            // raftRepair is handled automatically when interacting with the raft, not via the crafting menu.
             if (id === "raftRepair") return;
 
             const isStructure = id === "campfire" || id === "shelter";

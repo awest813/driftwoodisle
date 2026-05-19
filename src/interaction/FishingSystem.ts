@@ -37,6 +37,12 @@ export class FishingSystem {
 
         this._setupInput();
         this._scene.onBeforeRenderObservable.add(() => this._animateBobber());
+
+        window.addEventListener("playerDied", () => {
+            this._clearTimers();
+            this._disposeBobber();
+            this._state = "idle";
+        });
     }
 
     private _setupInput(): void {

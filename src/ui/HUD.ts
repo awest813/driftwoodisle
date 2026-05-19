@@ -123,9 +123,13 @@ export class HUD {
             let angle = cam.rotation.y * (180 / Math.PI);
             angle = (angle % 360 + 360) % 360;
             let dir = "N";
-            if (angle > 45 && angle <= 135) dir = "E";
-            else if (angle > 135 && angle <= 225) dir = "S";
-            else if (angle > 225 && angle <= 315) dir = "W";
+            if (angle > 22.5 && angle <= 67.5) dir = "NE";
+            else if (angle > 67.5 && angle <= 112.5) dir = "E";
+            else if (angle > 112.5 && angle <= 157.5) dir = "SE";
+            else if (angle > 157.5 && angle <= 202.5) dir = "S";
+            else if (angle > 202.5 && angle <= 247.5) dir = "SW";
+            else if (angle > 247.5 && angle <= 292.5) dir = "W";
+            else if (angle > 292.5 && angle <= 337.5) dir = "NW";
             compassText.innerText = `${dir} (${Math.round(angle)}°)`;
         }
     }
