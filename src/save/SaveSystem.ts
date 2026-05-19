@@ -59,16 +59,23 @@ export class SaveSystem {
             stats.loadData(data.stats);
             dayNight.setTime(data.time);
             
-            camera.position = new Vector3(
-                data.playerPosition.x,
-                data.playerPosition.y,
-                data.playerPosition.z
-            );
-            camera.rotation = new Vector3(
-                data.playerRotation.x,
-                data.playerRotation.y,
-                data.playerRotation.z
-            );
+            const isFiniteVec = (v: { x: number; y: number; z: number }) =>
+                isFinite(v.x) && isFinite(v.y) && isFinite(v.z);
+
+            if (isFiniteVec(data.playerPosition)) {
+                camera.position = new Vector3(
+                    data.playerPosition.x,
+                    data.playerPosition.y,
+                    data.playerPosition.z
+                );
+            }
+            if (isFiniteVec(data.playerRotation)) {
+                camera.rotation = new Vector3(
+                    data.playerRotation.x,
+                    data.playerRotation.y,
+                    data.playerRotation.z
+                );
+            }
 
             console.log("Game Loaded");
             return true;

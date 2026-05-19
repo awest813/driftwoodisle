@@ -65,6 +65,6 @@ export class DayNightCycle {
     }
 
     public setTime(time: number): void {
-        this._time = time;
+        this._time = Math.max(0, Math.min(1, time));
     }
 }
