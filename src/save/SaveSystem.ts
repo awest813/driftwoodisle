@@ -10,6 +10,7 @@ export interface SaveData {
     inventory: Record<ResourceType, number>;
     stats: Stats;
     time: number;
+    day?: number;
     playerPosition: { x: number, y: number, z: number };
     playerRotation: { x: number, y: number, z: number };
 }
@@ -27,6 +28,7 @@ export class SaveSystem {
             inventory: inventory.getData(),
             stats: stats.getData(),
             time: dayNight.time,
+            day: dayNight.day,
             playerPosition: {
                 x: camera.position.x,
                 y: camera.position.y,
@@ -58,6 +60,7 @@ export class SaveSystem {
             inventory.loadData(data.inventory);
             stats.loadData(data.stats);
             dayNight.setTime(data.time);
+            if (data.day !== undefined) dayNight.setDay(data.day);
             
             const isFiniteVec = (v: { x: number; y: number; z: number }) =>
                 isFinite(v.x) && isFinite(v.y) && isFinite(v.z);
