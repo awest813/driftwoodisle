@@ -15,7 +15,7 @@ export class HUD {
     }
 
     private _setupListeners(): void {
-        this._stats.addListener((stats: any) => {
+        this._stats.addListener((stats) => {
             this._updateBar("healthBar", stats.health);
             this._updateBar("hungerBar", stats.hunger);
             this._updateBar("thirstBar", stats.thirst);

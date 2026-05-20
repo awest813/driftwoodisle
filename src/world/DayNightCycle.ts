@@ -67,4 +67,14 @@ export class DayNightCycle {
     public setTime(time: number): void {
         this._time = Math.max(0, Math.min(1, time));
     }
+
+    public get day(): number {
+        return this._day;
+    }
+
+    public setDay(day: number): void {
+        this._day = Math.max(1, Math.floor(day));
+        const dSpan = document.getElementById("dayCount");
+        if (dSpan) dSpan.innerText = this._day.toString();
+    }
 }

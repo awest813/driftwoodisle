@@ -18,10 +18,11 @@ export class PlayerStats {
     };
     private _listeners: StatsCallback[] = [];
     private _isSprinting: boolean = false;
+    private _intervalId: ReturnType<typeof setInterval> | null = null;
 
     constructor() {
         // Survival loop
-        setInterval(() => {
+        this._intervalId = setInterval(() => {
             this.decreaseHunger(0.02);
             this.decreaseThirst(0.6);
             if (this._stats.warmth < 100) this.restoreWarmth(0.5);
@@ -31,6 +32,13 @@ export class PlayerStats {
             }
             this._checkHealthDrain();
         }, 1000);
+    }
+
+    public dispose(): void {
+        if (this._intervalId !== null) {
+            clearInterval(this._intervalId);
+            this._intervalId = null;
+        }
     }
 
     public setSprinting(active: boolean): void {
@@ -110,16 +118,19 @@ export class PlayerStats {
         this._listeners.forEach(cb => cb(this._stats));
     }
 
-    public get stats(): Stats {
-        return this._stats;
-    }
-
     public getData(): Stats {
         return this._stats;
     }
 
     public loadData(data: Stats): void {
-        this._stats = { ...data };
+        const clamp = (v: number) => Math.max(0, Math.min(100, v));
+        this._stats = {
+            health:  clamp(data.health),
+            hunger:  clamp(data.hunger),
+            thirst:  clamp(data.thirst),
+            stamina: clamp(data.stamina),
+            warmth:  clamp(data.warmth),
+        };
         this._notify();
     }
 }
