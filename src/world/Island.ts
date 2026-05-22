@@ -520,6 +520,62 @@ export class Island {
         const spawnPosition = position.clone();
         crab.position = spawnPosition.clone();
 
+        const wanderRadius = 2.5;
+        const speed = 1.1;
+        let target = spawnPosition.clone();
+        let pauseUntil = 0;
+        const pickTarget = () => {
+            const a = Math.random() * Math.PI * 2;
+            const r = Math.random() * wanderRadius;
+            target = new Vector3(
+                spawnPosition.x + Math.cos(a) * r,
+                spawnPosition.y,
+                spawnPosition.z + Math.sin(a) * r
+            );
+        };
+        pickTarget();
+
+        const phase = Math.random() * Math.PI * 2;
+        const moveObs = this._scene.onBeforeRenderObservable.add(() => {
+            const dt = this._scene.getEngine().getDeltaTime() / 1000;
+            const now = performance.now();
+            const dx = target.x - crab.position.x;
+            const dz = target.z - crab.position.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+
+            if (now < pauseUntil) {
+                // idle wiggle
+                const t = now * 0.005 + phase;
+                crab.position.y = spawnPosition.y + Math.abs(Math.sin(t * 2)) * 0.03;
+                return;
+            }
+
+            if (dist < 0.05) {
+                pauseUntil = now + 400 + Math.random() * 1200;
+                pickTarget();
+                return;
+            }
+
+            const step = Math.min(dist, speed * dt);
+            const nx = dx / dist;
+            const nz = dz / dist;
+            crab.position.x += nx * step;
+            crab.position.z += nz * step;
+
+            // crabs walk sideways: orient body perpendicular to movement direction
+            const facing = Math.atan2(nx, nz) + Math.PI / 2;
+            crab.rotation.y = facing;
+
+            // scuttle bob
+            const t = now * 0.025 + phase;
+            crab.position.y = spawnPosition.y + Math.abs(Math.sin(t)) * 0.04;
+            crab.rotation.z = Math.sin(t) * 0.12;
+        });
+
+        crab.onDisposeObservable.add(() => {
+            this._scene.onBeforeRenderObservable.remove(moveObs);
+        });
+
         crab.metadata = {
             interactable: {
                 id, name: "Crab",
