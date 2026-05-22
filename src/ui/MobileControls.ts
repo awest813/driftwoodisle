@@ -4,6 +4,7 @@ export class MobileControls {
     private _container: HTMLElement;
     private _joystick: HTMLElement;
     private _joystickKnob: HTMLElement;
+    private _joystickZone: HTMLElement;
     private _lookPad: HTMLElement;
     private _btnInteract: HTMLElement;
     private _btnFish: HTMLElement;
@@ -37,6 +38,7 @@ export class MobileControls {
         this._container = this._require("mobileControls");
         this._joystick = this._require("mc-joystick");
         this._joystickKnob = this._require("mc-joystick-knob");
+        this._joystickZone = this._require("mc-joystick-zone");
         this._lookPad = this._require("mc-lookpad");
         this._btnInteract = this._require("mc-btn-interact");
         this._btnFish = this._require("mc-btn-fish");
@@ -144,24 +146,35 @@ export class MobileControls {
     }
 
     private _wireJoystick(): void {
+        const zone = this._joystickZone;
         const stick = this._joystick;
         const updateKnob = (dx: number, dy: number) => {
             this._joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
         };
 
-        stick.addEventListener("pointerdown", (e) => {
+        zone.addEventListener("pointerdown", (e) => {
             e.preventDefault();
             if (this._joystickPointerId !== null) return;
             this._joystickPointerId = e.pointerId;
-            stick.setPointerCapture(e.pointerId);
-            const rect = stick.getBoundingClientRect();
-            this._joystickOriginX = rect.left + rect.width / 2;
-            this._joystickOriginY = rect.top + rect.height / 2;
-            this._joystickRadius = rect.width * 0.42;
+            zone.setPointerCapture(e.pointerId);
+
+            // Anchor the joystick under the player's thumb (floating stick).
+            const size = stick.offsetWidth || 150;
+            stick.style.left = `${e.clientX - size / 2}px`;
+            stick.style.top = `${e.clientY - size / 2}px`;
+            stick.style.right = "auto";
+            stick.style.bottom = "auto";
+            stick.classList.add("engaged");
+
+            this._joystickOriginX = e.clientX;
+            this._joystickOriginY = e.clientY;
+            this._joystickRadius = size * 0.42;
             this._handleJoystickMove(e.clientX, e.clientY, updateKnob);
+
+            navigator.vibrate?.(8);
         });
 
-        stick.addEventListener("pointermove", (e) => {
+        zone.addEventListener("pointermove", (e) => {
             if (e.pointerId !== this._joystickPointerId) return;
             e.preventDefault();
             this._handleJoystickMove(e.clientX, e.clientY, updateKnob);
@@ -173,9 +186,8 @@ export class MobileControls {
             this._releaseJoystick();
             updateKnob(0, 0);
         };
-        stick.addEventListener("pointerup", end);
-        stick.addEventListener("pointercancel", end);
-        stick.addEventListener("pointerleave", end);
+        zone.addEventListener("pointerup", end);
+        zone.addEventListener("pointercancel", end);
     }
 
     private _handleJoystickMove(clientX: number, clientY: number, updateKnob: (dx: number, dy: number) => void): void {
@@ -208,10 +220,16 @@ export class MobileControls {
 
     private _releaseJoystick(): void {
         if (this._joystickPointerId !== null) {
-            try { this._joystick.releasePointerCapture(this._joystickPointerId); } catch { /* noop */ }
+            try { this._joystickZone.releasePointerCapture(this._joystickPointerId); } catch { /* noop */ }
         }
         this._joystickPointerId = null;
         this._joystickKnob.style.transform = "translate(0px, 0px)";
+        this._joystick.classList.remove("engaged");
+        // Reset to docked rest position (CSS owns the default placement).
+        this._joystick.style.left = "";
+        this._joystick.style.top = "";
+        this._joystick.style.right = "";
+        this._joystick.style.bottom = "";
         const player = (window as any).game?.playerController;
         player?.setExternalMove?.(0, 0);
     }
@@ -226,6 +244,7 @@ export class MobileControls {
             this._lookLastX = e.clientX;
             this._lookLastY = e.clientY;
             pad.setPointerCapture(e.pointerId);
+            this._container.classList.add("has-looked");
         });
 
         pad.addEventListener("pointermove", (e) => {
@@ -293,6 +312,7 @@ export class MobileControls {
             e.preventDefault();
             e.stopPropagation();
             el.classList.add("pressed");
+            navigator.vibrate?.(10);
             handler();
         });
         const up = (e: Event) => {
@@ -309,6 +329,7 @@ export class MobileControls {
             e.preventDefault();
             e.stopPropagation();
             const isActive = el.classList.toggle("toggled");
+            navigator.vibrate?.(isActive ? 14 : 6);
             handler(isActive);
         });
     }

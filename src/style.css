@@ -1460,13 +1460,39 @@ body.mobile-active #fpsCounter {
 
 #mc-top {
     position: absolute;
-    top: 12px;
-    left: 12px;
-    right: 12px;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    left: calc(12px + env(safe-area-inset-left, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
     display: flex;
     justify-content: space-between;
     pointer-events: none;
     z-index: 2;
+}
+
+#mc-joystick-zone {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 45%;
+    height: 65%;
+    pointer-events: auto;
+    touch-action: none;
+    background: transparent;
+    z-index: 1;
+}
+
+#mobileControls.left-handed #mc-joystick-zone {
+    left: auto;
+    right: 0;
+}
+
+#mobileControls #mc-lookpad::after {
+    transition: opacity 0.3s ease;
+}
+
+#mobileControls.has-looked #mc-lookpad::after {
+    opacity: 0 !important;
+    animation: none;
 }
 
 #mc-top .mc-icon-btn {
@@ -1542,19 +1568,28 @@ body.mobile-active #fpsCounter {
 
 #mc-joystick {
     position: absolute;
-    bottom: 28px;
-    left: 28px;
+    bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+    left: calc(28px + env(safe-area-inset-left, 0px));
     width: 150px;
     height: 150px;
     border-radius: 50%;
-    background: radial-gradient(circle at center, rgba(244,236,216,0.22) 0%, rgba(244,236,216,0.08) 60%, rgba(0,0,0,0.0) 78%);
-    border: 2px solid rgba(244, 236, 216, 0.55);
-    pointer-events: auto;
+    background: radial-gradient(circle at center, rgba(244,236,216,0.18) 0%, rgba(244,236,216,0.06) 60%, rgba(0,0,0,0.0) 78%);
+    border: 2px solid rgba(244, 236, 216, 0.35);
+    pointer-events: none;
     touch-action: none;
     box-shadow: 0 4px 14px rgba(0,0,0,0.5), inset 0 0 22px rgba(0,0,0,0.3);
     display: flex;
     align-items: center;
     justify-content: center;
+    opacity: 0.55;
+    transition: opacity 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+#mc-joystick.engaged {
+    opacity: 1;
+    border-color: rgba(255, 220, 140, 0.85);
+    background: radial-gradient(circle at center, rgba(255, 220, 140, 0.22) 0%, rgba(244,236,216,0.08) 65%, rgba(0,0,0,0.0) 80%);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5), inset 0 0 22px rgba(0,0,0,0.25), 0 0 18px rgba(255, 210, 118, 0.35);
 }
 
 #mc-joystick::before {
@@ -1568,7 +1603,7 @@ body.mobile-active #fpsCounter {
 
 #mobileControls.left-handed #mc-joystick {
     left: auto;
-    right: 28px;
+    right: calc(28px + env(safe-area-inset-right, 0px));
 }
 
 #mc-joystick-knob {
@@ -1584,8 +1619,8 @@ body.mobile-active #fpsCounter {
 
 #mc-action-cluster {
     position: absolute;
-    bottom: 28px;
-    right: 28px;
+    bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+    right: calc(28px + env(safe-area-inset-right, 0px));
     display: grid;
     grid-template-columns: repeat(2, auto);
     grid-template-areas:
@@ -1600,7 +1635,7 @@ body.mobile-active #fpsCounter {
 
 #mobileControls.left-handed #mc-action-cluster {
     right: auto;
-    left: 28px;
+    left: calc(28px + env(safe-area-inset-left, 0px));
     grid-template-areas:
         ".        fish   "
         "jump     sprint "
