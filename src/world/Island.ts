@@ -48,6 +48,7 @@ export class Island {
     private _baseFish!: Mesh;
     private _basePalmLeaf!: Mesh;
     private _mistPatches: Mesh[] = [];
+    private _crabObstacles: { x: number; z: number; r: number }[] = [];
     private _woodTex!: DynamicTexture;
     private _grassTex!: DynamicTexture;
     private _rockTex!: DynamicTexture;
@@ -315,10 +316,22 @@ export class Island {
                 case "stone": this._createPickup(node.position, `stone_${i}`, "Small Stone", "stone", 1, new Color3(0.5, 0.5, 0.5)); break;
                 case "flint": this._createPickup(node.position, `flint_${i}`, "Flint", "flint", 1, new Color3(0.2, 0.2, 0.2)); break;
                 case "scrap": this._createPickup(node.position, `scrap_${i}`, "Metal Scrap", "scrap", 1, new Color3(0.7, 0.7, 0.8)); break;
-                case "tree": this._createTree(node.position, `tree_${i}`); break;
-                case "bush": this._createBush(node.position, `bush_${i}`); break;
-                case "rock": this._createLargeRock(node.position, `rock_${i}`); break;
-                case "crate": this._createCrate(node.position, `crate_${i}`); break;
+                case "tree":
+                    this._createTree(node.position, `tree_${i}`);
+                    this._crabObstacles.push({ x: node.position.x, z: node.position.z, r: 1.1 });
+                    break;
+                case "bush":
+                    this._createBush(node.position, `bush_${i}`);
+                    this._crabObstacles.push({ x: node.position.x, z: node.position.z, r: 0.9 });
+                    break;
+                case "rock":
+                    this._createLargeRock(node.position, `rock_${i}`);
+                    this._crabObstacles.push({ x: node.position.x, z: node.position.z, r: 1.6 });
+                    break;
+                case "crate":
+                    this._createCrate(node.position, `crate_${i}`);
+                    this._crabObstacles.push({ x: node.position.x, z: node.position.z, r: 0.8 });
+                    break;
                 case "crab": this._createCrab(node.position, `crab_${i}`); break;
                 case "fish": this._createFish(node.position, `fish_${i}`); break;
             }
@@ -515,6 +528,27 @@ export class Island {
         };
     }
 
+    private _isOnSand(x: number, z: number): boolean {
+        // Sand bases (top-down circles) defined in _createTerrain
+        const inBase1 = (x - 10) * (x - 10) + (z + 10) * (z + 10) <= 70 * 70;
+        const inBase2 = (x + 20) * (x + 20) + (z - 20) * (z - 20) <= 60 * 60;
+        if (!inBase1 && !inBase2) return false;
+        // Non-sand overlays: grass grove, rocky bluff, pond
+        const inGrove = (x - 25) * (x - 25) + (z - 10) * (z - 10) <= 35 * 35;
+        const inBluff = x * x + (z - 45) * (z - 45) <= 30 * 30;
+        const inPond = (x - 20) * (x - 20) + (z - 5) * (z - 5) <= 8.75 * 8.75;
+        return !inGrove && !inBluff && !inPond;
+    }
+
+    private _isClearOfObstacles(x: number, z: number, pad: number): boolean {
+        for (const o of this._crabObstacles) {
+            const dx = x - o.x, dz = z - o.z;
+            const rr = o.r + pad;
+            if (dx * dx + dz * dz < rr * rr) return false;
+        }
+        return true;
+    }
+
     private _createCrab(position: Vector3, id: string): void {
         const crab = this._baseCrab.createInstance(id);
         const spawnPosition = position.clone();
@@ -522,16 +556,21 @@ export class Island {
 
         const wanderRadius = 2.5;
         const speed = 1.1;
+        const crabPad = 0.3;
         let target = spawnPosition.clone();
         let pauseUntil = 0;
         const pickTarget = () => {
-            const a = Math.random() * Math.PI * 2;
-            const r = Math.random() * wanderRadius;
-            target = new Vector3(
-                spawnPosition.x + Math.cos(a) * r,
-                spawnPosition.y,
-                spawnPosition.z + Math.sin(a) * r
-            );
+            for (let i = 0; i < 12; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const r = Math.random() * wanderRadius;
+                const tx = spawnPosition.x + Math.cos(a) * r;
+                const tz = spawnPosition.z + Math.sin(a) * r;
+                if (this._isOnSand(tx, tz) && this._isClearOfObstacles(tx, tz, crabPad)) {
+                    target = new Vector3(tx, spawnPosition.y, tz);
+                    return;
+                }
+            }
+            target = spawnPosition.clone();
         };
         pickTarget();
 
@@ -559,8 +598,16 @@ export class Island {
             const step = Math.min(dist, speed * dt);
             const nx = dx / dist;
             const nz = dz / dist;
-            crab.position.x += nx * step;
-            crab.position.z += nz * step;
+            const nextX = crab.position.x + nx * step;
+            const nextZ = crab.position.z + nz * step;
+            if (!this._isOnSand(nextX, nextZ) || !this._isClearOfObstacles(nextX, nextZ, crabPad)) {
+                // Blocked: drop target, pause briefly, then pick a new one
+                pauseUntil = now + 300 + Math.random() * 600;
+                pickTarget();
+                return;
+            }
+            crab.position.x = nextX;
+            crab.position.z = nextZ;
 
             // crabs walk sideways: orient body perpendicular to movement direction
             const facing = Math.atan2(nx, nz) + Math.PI / 2;
