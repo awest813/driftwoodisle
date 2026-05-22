@@ -16,17 +16,11 @@ export class HUD {
 
     private _setupListeners(): void {
         this._stats.addListener((stats) => {
-            this._updateBar("healthBar", stats.health);
-            this._updateBar("hungerBar", stats.hunger);
-            this._updateBar("thirstBar", stats.thirst);
-            this._updateBar("staminaBar", stats.stamina);
-            this._updateBar("warmthBar", stats.warmth);
-
-            this._updateVal("healthVal", stats.health);
-            this._updateVal("hungerVal", stats.hunger);
-            this._updateVal("thirstVal", stats.thirst);
-            this._updateVal("staminaVal", stats.stamina);
-            this._updateVal("warmthVal", stats.warmth);
+            this._updateStat("health", stats.health);
+            this._updateStat("hunger", stats.hunger);
+            this._updateStat("thirst", stats.thirst);
+            this._updateStat("stamina", stats.stamina);
+            this._updateStat("warmth", stats.warmth);
 
             const wIcon = document.getElementById("warmthIcon");
             if (wIcon) {
@@ -106,14 +100,17 @@ export class HUD {
         slot.classList.add('pulse');
     }
 
-    private _updateBar(id: string, value: number): void {
-        const bar = document.getElementById(id);
-        if (bar) bar.style.width = `${value}%`;
-    }
-
-    private _updateVal(id: string, value: number): void {
-        const el = document.getElementById(id);
-        if (el) el.innerText = Math.ceil(value).toString();
+    private _updateStat(key: string, value: number): void {
+        const v = Math.max(0, Math.min(100, value));
+        const bar = document.getElementById(`${key}Bar`);
+        if (bar) bar.style.width = `${v}%`;
+        const valEl = document.getElementById(`${key}Val`);
+        if (valEl) valEl.innerText = Math.ceil(v).toString();
+        const row = bar?.closest(".stat-row") as HTMLElement | null;
+        if (row) {
+            row.classList.toggle("low", v < 30 && v >= 15);
+            row.classList.toggle("critical", v < 15);
+        }
     }
 
     private _updateCompass(): void {
@@ -134,15 +131,41 @@ export class HUD {
         }
     }
 
-    public showNotification(text: string): void {
+    public showNotification(text: string, kind?: "gain" | "info" | "warn" | "danger"): void {
         const notifications = document.getElementById("notifications");
-        if (notifications) {
-            const n = document.createElement("div");
-            n.className = "notification";
-            n.innerText = text;
-            notifications.appendChild(n);
-            setTimeout(() => n.remove(), 3000);
+        if (!notifications) return;
+        const type = kind ?? this._inferKind(text);
+
+        // Coalesce a rapid duplicate (e.g. repeated chop progress) into the most recent toast.
+        const last = notifications.lastElementChild as HTMLElement | null;
+        if (last && last.dataset.text === text) {
+            last.classList.remove("repeat");
+            void last.offsetWidth;
+            last.classList.add("repeat");
+            return;
         }
+
+        const n = document.createElement("div");
+        n.className = `notification ${type}`;
+        n.dataset.text = text;
+        const icon = document.createElement("span");
+        icon.className = "notif-icon";
+        icon.textContent = { gain: "+", info: "•", warn: "!", danger: "✕" }[type];
+        const body = document.createElement("span");
+        body.className = "notif-text";
+        body.textContent = text;
+        n.appendChild(icon);
+        n.appendChild(body);
+        notifications.appendChild(n);
+        setTimeout(() => n.remove(), 3000);
+    }
+
+    private _inferKind(text: string): "gain" | "info" | "warn" | "danger" {
+        const t = text.toLowerCase();
+        if (/^\+|\(\+\d|caught|mined|gathered|drank|smashed|felled|crafted|built|repaired|cooked/.test(t)) return "gain";
+        if (/not enough|cannot|can't|no save|too |failed|perished/.test(t)) return "danger";
+        if (/wait|aim|cast|bite|building mode|blueprint|cancelled|tip|hint/.test(t)) return "warn";
+        return "info";
     }
 
     public showInteractionPrompt(text: string): void {

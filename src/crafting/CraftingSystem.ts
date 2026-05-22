@@ -60,6 +60,13 @@ export class CraftingSystem {
     private _setupCloseButton(): void {
         const btn = document.getElementById("closeCrafting");
         if (btn) btn.onclick = () => this.close();
+
+        // Click on the dim backdrop (outside the journal page) closes the panel.
+        if (this._menuElement) {
+            this._menuElement.addEventListener("mousedown", (e) => {
+                if (e.target === this._menuElement) this.close();
+            });
+        }
     }
 
     public toggle(): void {
@@ -120,25 +127,45 @@ export class CraftingSystem {
         if (!this._recipeListElement) return;
         this._recipeListElement.innerHTML = "";
 
-        Object.entries(recipes).forEach(([id, recipe]) => {
-            // raftRepair is handled automatically when interacting with the raft, not via the crafting menu.
-            if (id === "raftRepair") return;
+        const entries = Object.entries(recipes)
+            .filter(([id]) => id !== "raftRepair");
 
+        // Surface craftable recipes first so the player sees what's actionable.
+        entries.sort(([idA, a], [idB, b]) => {
+            const structA = idA === "campfire" || idA === "shelter";
+            const structB = idB === "campfire" || idB === "shelter";
+            const canA = structA || this._canCraft(a);
+            const canB = structB || this._canCraft(b);
+            if (canA !== canB) return canA ? -1 : 1;
+            return 0;
+        });
+
+        entries.forEach(([id, recipe]) => {
             const isStructure = id === "campfire" || id === "shelter";
             const canCraft = isStructure || this._canCraft(recipe);
             const btnText = isStructure ? "Place Blueprint" : "Craft";
 
             const itemEl = document.createElement("div");
-            itemEl.className = "recipe-item";
-            
-            const ingredients = Object.entries(recipe.requires)
-                .map(([type, count]) => `${count}x ${this._icons[type] || type}`)
-                .join(" ");
+            itemEl.className = "recipe-item" + (canCraft ? " craftable" : " locked");
+
+            const chips = Object.entries(recipe.requires).map(([type, count]) => {
+                const need = count || 0;
+                const have = this._inventory.getQuantity(type as ResourceType);
+                const icon = this._icons[type] || itemDef(type)?.icon || type;
+                const ok = have >= need;
+                const name = itemDef(type)?.name || type;
+                return `<span class="ingredient-chip ${ok ? "ok" : "lacking"}" title="${name}">`
+                    + `<span class="chip-icon">${icon}</span>`
+                    + `<span class="chip-count">${have}/${need}</span>`
+                    + `</span>`;
+            }).join("");
+
+            const resultIcon = this._icons[recipe.creates] || itemDef(recipe.creates)?.icon || '';
 
             itemEl.innerHTML = `
                 <div class="recipe-info">
-                    <h3>${this._icons[recipe.creates] || ''} ${recipe.name}</h3>
-                    <div class="recipe-ingredients">${ingredients}</div>
+                    <h3>${resultIcon} ${recipe.name}</h3>
+                    <div class="recipe-ingredients">${chips}</div>
                 </div>
                 <button class="craft-btn" ${canCraft ? "" : "disabled"}>${btnText}</button>
             `;

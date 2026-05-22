@@ -2,16 +2,42 @@ import { SaveSystem } from "../save/SaveSystem";
 import { SettingsManager } from "../save/SettingsManager";
 import { LoadingScreen } from "./LoadingScreen";
 
+const HERO_BLURBS = [
+    "Cast ashore with nothing but salt in your boots and a stub of pencil. Forage, build, and live to write tomorrow's page.",
+    "The tide left you a beach, a rusted knife, and the smell of distant rain. Make of it what you can before nightfall.",
+    "Driftwood, freshwater, and the patience to keep a fire lit — that is the whole syllabus of survival.",
+    "Each sunrise costs you a page. Spend it well; the isle keeps no copies."
+];
+
 export class MainMenu {
     private _menuElement: HTMLElement | null;
     private _onStart: (isLoad: boolean) => Promise<void> | void;
     private _isStarting: boolean = false;
+    private _currentScreen: string = "menuContent";
 
     constructor(onStart: (isLoad: boolean) => Promise<void> | void) {
         this._menuElement = document.getElementById("mainMenu");
         this._onStart = onStart;
 
         this._setupButtons();
+        this._setupHero();
+        this._setupKeyboard();
+    }
+
+    private _setupHero(): void {
+        const blurb = document.getElementById("heroBlurb");
+        if (blurb) blurb.textContent = HERO_BLURBS[Math.floor(Math.random() * HERO_BLURBS.length)];
+    }
+
+    private _setupKeyboard(): void {
+        document.addEventListener("keydown", (e) => {
+            if (!this._menuElement || this._menuElement.style.display === "none") return;
+            if (e.key === "Escape" && this._currentScreen !== "menuContent") {
+                e.preventDefault();
+                if (this._currentScreen === "settingsMenu") this._saveSettings();
+                this._showScreen("menuContent");
+            }
+        });
     }
 
     private _setupButtons(): void {
@@ -25,10 +51,11 @@ export class MainMenu {
         if (startBtn) startBtn.onclick = () => this._start(false);
 
         if (loadBtn) {
-            if (SaveSystem.hasSave()) {
+            const preview = SaveSystem.getSavePreview();
+            if (preview) {
                 loadBtn.disabled = false;
                 loadBtn.onclick = () => this._start(true);
-                if (continueSub) continueSub.textContent = "Pick up where you left off";
+                if (continueSub) continueSub.textContent = `Day ${preview.day} · resume your journal`;
             }
         }
 
@@ -50,8 +77,22 @@ export class MainMenu {
 
     private _showScreen(id: string): void {
         const pages = this._menuElement?.querySelectorAll(".journal-page") ?? [];
-        pages.forEach(p => (p as HTMLElement).style.display = "none");
-        document.getElementById(id)!.style.display = "block";
+        pages.forEach(p => {
+            const el = p as HTMLElement;
+            el.style.display = "none";
+            el.classList.remove("page-enter");
+        });
+        const next = document.getElementById(id);
+        if (next) {
+            next.style.display = "block";
+            // restart entrance animation
+            next.classList.remove("page-enter");
+            void next.offsetWidth;
+            next.classList.add("page-enter");
+            const firstBtn = next.querySelector<HTMLButtonElement>("button:not(:disabled)");
+            firstBtn?.focus({ preventScroll: true });
+        }
+        this._currentScreen = id;
     }
 
     private _initSettingsUI(): void {

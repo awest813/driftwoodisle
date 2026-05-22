@@ -80,13 +80,19 @@
     position: absolute;
     top: -42px;
     left: 50%;
-    transform: translateX(-50%);
     width: 68px;
     height: 68px;
     border-radius: 50%;
     box-shadow: 0 6px 14px rgba(0,0,0,0.5), 0 0 0 3px var(--parchment);
     z-index: 3;
     display: block;
+    transform: translateX(-50%);
+    animation: heroSealBob 5.5s ease-in-out infinite;
+}
+
+@keyframes heroSealBob {
+    0%, 100% { transform: translateX(-50%) translateY(0) rotate(-2deg); }
+    50%      { transform: translateX(-50%) translateY(-3px) rotate(2deg); }
 }
 
 .hero-tagline {
@@ -127,6 +133,15 @@
     width: 90%;
     position: relative;
     font-family: var(--font-journal);
+}
+
+.journal-page.page-enter {
+    animation: pageEnter 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes pageEnter {
+    from { opacity: 0; transform: translateY(10px) scale(0.985); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .journal-page::before {
@@ -261,6 +276,22 @@
 .menu-btn.primary {
     background: var(--accent);
     box-shadow: 4px 4px 0px var(--ink), inset 0 0 0 2px rgba(255,255,255,0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+.menu-btn.primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%);
+    transform: translateX(-120%);
+    transition: transform 0.6s ease;
+    pointer-events: none;
+}
+
+.menu-btn.primary:hover:not(:disabled)::after {
+    transform: translateX(120%);
 }
 
 .menu-btn.small {
@@ -546,7 +577,12 @@ html, body {
     text-transform: uppercase;
     font-size: 0.95rem;
     line-height: 1.25;
-    transition: opacity 0.12s ease-in-out;
+    transform: translateX(-50%) translateY(4px);
+    transition: opacity 0.14s ease-out, transform 0.14s ease-out;
+}
+
+#interactionPrompt[style*="opacity: 1"] {
+    transform: translateX(-50%) translateY(0);
 }
 
 .interaction-name,
@@ -646,11 +682,36 @@ html, body {
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.stat-bar.health { background: #8b0000; }
-.stat-bar.hunger { background: #556b2f; }
-.stat-bar.thirst { background: #4682b4; }
-.stat-bar.stamina { background: #cd853f; }
-.stat-bar.warmth { background: #ff9900; }
+.stat-bar.health { background: linear-gradient(180deg, #b22020 0%, #8b0000 60%, #6b0000 100%); }
+.stat-bar.hunger { background: linear-gradient(180deg, #7a9445 0%, #556b2f 60%, #3d4f22 100%); }
+.stat-bar.thirst { background: linear-gradient(180deg, #6aa3cf 0%, #4682b4 60%, #2f5d83 100%); }
+.stat-bar.stamina { background: linear-gradient(180deg, #e2a35a 0%, #cd853f 60%, #9c6228 100%); }
+.stat-bar.warmth { background: linear-gradient(180deg, #ffbb55 0%, #ff9900 60%, #c87600 100%); }
+
+.stat-row.low .stat-bar-bg {
+    border-color: #a0541c;
+    box-shadow: 0 0 0 1px rgba(160, 84, 28, 0.35);
+}
+.stat-row.low .stat-val { color: #a0541c; }
+.stat-row.low .stat-icon { animation: statBlink 1.4s ease-in-out infinite; }
+
+.stat-row.critical .stat-bar-bg {
+    border-color: #c8331f;
+    box-shadow: 0 0 6px rgba(200, 51, 31, 0.55);
+}
+.stat-row.critical .stat-val { color: #c8331f; font-weight: bold; }
+.stat-row.critical .stat-icon { animation: statBlink 0.6s ease-in-out infinite; }
+.stat-row.critical .stat-bar { animation: statBarPulse 0.9s ease-in-out infinite; }
+
+@keyframes statBlink {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.55; transform: scale(1.12); }
+}
+
+@keyframes statBarPulse {
+    0%, 100% { filter: brightness(1); }
+    50%      { filter: brightness(1.45); }
+}
 
 #notifications {
     position: absolute;
@@ -662,25 +723,61 @@ html, body {
 }
 
 .notification {
-    background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(4px);
-    color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
-    border-left: 4px solid #2ed573;
-    animation: slideIn 0.3s ease-out, fadeOut 0.5s ease-in 2.5s forwards;
-    font-family: sans-serif;
+    --accent-color: #2ed573;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 220px;
+    max-width: 340px;
+    background: rgba(20, 14, 8, 0.82);
+    backdrop-filter: blur(6px);
+    color: #f4ecd8;
+    padding: 10px 14px 10px 12px;
+    border: 1px solid rgba(244, 236, 216, 0.18);
+    border-left: 4px solid var(--accent-color);
+    border-radius: 3px;
+    animation: notifSlide 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), notifFade 0.5s ease-in 2.5s forwards;
+    font-family: var(--font-journal);
+    font-size: 0.92rem;
+    line-height: 1.25;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+}
+
+.notification.gain   { --accent-color: #7ec96b; }
+.notification.info   { --accent-color: #d9c79a; }
+.notification.warn   { --accent-color: #e0a946; }
+.notification.danger { --accent-color: #d05a4a; }
+
+.notif-icon {
+    flex: 0 0 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    color: #1b120a;
     font-weight: bold;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
 }
 
-@keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+.notification.repeat {
+    animation: notifRepeatPulse 0.35s ease-out, notifFade 0.5s ease-in 2.5s forwards;
 }
 
-@keyframes fadeOut {
-    to { opacity: 0; transform: translateY(-10px); }
+@keyframes notifSlide {
+    from { transform: translateX(110%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes notifFade {
+    to { opacity: 0; transform: translateX(20%); }
+}
+
+@keyframes notifRepeatPulse {
+    0%   { transform: scale(1);    box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 0 0 var(--accent-color); }
+    50%  { transform: scale(1.03); box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 0 4px rgba(255,255,255,0.0); }
+    100% { transform: scale(1);    box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 0 0 var(--accent-color); }
 }
 
 #hotbar {
@@ -722,6 +819,15 @@ html, body {
 
 #craftingMenu.active {
     display: flex;
+}
+
+#craftingMenu.active .inventory-page {
+    animation: invOpen 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes invOpen {
+    from { opacity: 0; transform: translateY(14px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 #craftingMenu .inventory-page {
@@ -797,10 +903,61 @@ html, body {
 }
 
 .recipe-ingredients {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
     font-size: 0.95rem;
     margin-bottom: 15px;
     flex-grow: 1;
     line-height: 1.4;
+}
+
+.ingredient-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px 3px 6px;
+    border-radius: 10px;
+    background: rgba(74, 55, 40, 0.12);
+    border: 1px solid rgba(74, 55, 40, 0.25);
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+.ingredient-chip .chip-icon {
+    font-size: 1rem;
+}
+
+.ingredient-chip .chip-count {
+    font-family: monospace;
+    color: var(--ink);
+}
+
+.ingredient-chip.ok {
+    background: rgba(86, 130, 60, 0.18);
+    border-color: rgba(86, 130, 60, 0.5);
+}
+
+.ingredient-chip.ok .chip-count { color: #3f6d2a; }
+
+.ingredient-chip.lacking {
+    background: rgba(176, 60, 40, 0.13);
+    border-color: rgba(176, 60, 40, 0.45);
+}
+
+.ingredient-chip.lacking .chip-count { color: #a83a28; font-weight: bold; }
+
+.recipe-item.locked {
+    opacity: 0.78;
+}
+
+.recipe-item.locked h3 {
+    color: rgba(44,44,44,0.7);
+}
+
+.recipe-item.craftable {
+    border-left-color: #6f8b46;
+    box-shadow: 2px 2px 0 rgba(86, 130, 60, 0.25);
 }
 
 .craft-btn {
@@ -1303,13 +1460,39 @@ body.mobile-active #fpsCounter {
 
 #mc-top {
     position: absolute;
-    top: 12px;
-    left: 12px;
-    right: 12px;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    left: calc(12px + env(safe-area-inset-left, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
     display: flex;
     justify-content: space-between;
     pointer-events: none;
     z-index: 2;
+}
+
+#mc-joystick-zone {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 45%;
+    height: 65%;
+    pointer-events: auto;
+    touch-action: none;
+    background: transparent;
+    z-index: 1;
+}
+
+#mobileControls.left-handed #mc-joystick-zone {
+    left: auto;
+    right: 0;
+}
+
+#mobileControls #mc-lookpad::after {
+    transition: opacity 0.3s ease;
+}
+
+#mobileControls.has-looked #mc-lookpad::after {
+    opacity: 0 !important;
+    animation: none;
 }
 
 #mc-top .mc-icon-btn {
@@ -1385,19 +1568,28 @@ body.mobile-active #fpsCounter {
 
 #mc-joystick {
     position: absolute;
-    bottom: 28px;
-    left: 28px;
+    bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+    left: calc(28px + env(safe-area-inset-left, 0px));
     width: 150px;
     height: 150px;
     border-radius: 50%;
-    background: radial-gradient(circle at center, rgba(244,236,216,0.22) 0%, rgba(244,236,216,0.08) 60%, rgba(0,0,0,0.0) 78%);
-    border: 2px solid rgba(244, 236, 216, 0.55);
-    pointer-events: auto;
+    background: radial-gradient(circle at center, rgba(244,236,216,0.18) 0%, rgba(244,236,216,0.06) 60%, rgba(0,0,0,0.0) 78%);
+    border: 2px solid rgba(244, 236, 216, 0.35);
+    pointer-events: none;
     touch-action: none;
     box-shadow: 0 4px 14px rgba(0,0,0,0.5), inset 0 0 22px rgba(0,0,0,0.3);
     display: flex;
     align-items: center;
     justify-content: center;
+    opacity: 0.55;
+    transition: opacity 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+#mc-joystick.engaged {
+    opacity: 1;
+    border-color: rgba(255, 220, 140, 0.85);
+    background: radial-gradient(circle at center, rgba(255, 220, 140, 0.22) 0%, rgba(244,236,216,0.08) 65%, rgba(0,0,0,0.0) 80%);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5), inset 0 0 22px rgba(0,0,0,0.25), 0 0 18px rgba(255, 210, 118, 0.35);
 }
 
 #mc-joystick::before {
@@ -1411,7 +1603,7 @@ body.mobile-active #fpsCounter {
 
 #mobileControls.left-handed #mc-joystick {
     left: auto;
-    right: 28px;
+    right: calc(28px + env(safe-area-inset-right, 0px));
 }
 
 #mc-joystick-knob {
@@ -1427,8 +1619,8 @@ body.mobile-active #fpsCounter {
 
 #mc-action-cluster {
     position: absolute;
-    bottom: 28px;
-    right: 28px;
+    bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+    right: calc(28px + env(safe-area-inset-right, 0px));
     display: grid;
     grid-template-columns: repeat(2, auto);
     grid-template-areas:
@@ -1443,7 +1635,7 @@ body.mobile-active #fpsCounter {
 
 #mobileControls.left-handed #mc-action-cluster {
     right: auto;
-    left: 28px;
+    left: calc(28px + env(safe-area-inset-left, 0px));
     grid-template-areas:
         ".        fish   "
         "jump     sprint "

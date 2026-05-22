@@ -91,4 +91,15 @@ export class SaveSystem {
     public static hasSave(): boolean {
         return localStorage.getItem(this.SAVE_KEY) !== null;
     }
+
+    public static getSavePreview(): { day: number } | null {
+        const raw = localStorage.getItem(this.SAVE_KEY);
+        if (!raw) return null;
+        try {
+            const data = JSON.parse(raw) as Partial<SaveData>;
+            return { day: data.day ?? 1 };
+        } catch {
+            return null;
+        }
+    }
 }
