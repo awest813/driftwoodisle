@@ -821,6 +821,15 @@ html, body {
     display: flex;
 }
 
+#craftingMenu.active .inventory-page {
+    animation: invOpen 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes invOpen {
+    from { opacity: 0; transform: translateY(14px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 #craftingMenu .inventory-page {
     width: min(92vw, 980px);
     max-width: 980px;
@@ -894,10 +903,61 @@ html, body {
 }
 
 .recipe-ingredients {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
     font-size: 0.95rem;
     margin-bottom: 15px;
     flex-grow: 1;
     line-height: 1.4;
+}
+
+.ingredient-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px 3px 6px;
+    border-radius: 10px;
+    background: rgba(74, 55, 40, 0.12);
+    border: 1px solid rgba(74, 55, 40, 0.25);
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+.ingredient-chip .chip-icon {
+    font-size: 1rem;
+}
+
+.ingredient-chip .chip-count {
+    font-family: monospace;
+    color: var(--ink);
+}
+
+.ingredient-chip.ok {
+    background: rgba(86, 130, 60, 0.18);
+    border-color: rgba(86, 130, 60, 0.5);
+}
+
+.ingredient-chip.ok .chip-count { color: #3f6d2a; }
+
+.ingredient-chip.lacking {
+    background: rgba(176, 60, 40, 0.13);
+    border-color: rgba(176, 60, 40, 0.45);
+}
+
+.ingredient-chip.lacking .chip-count { color: #a83a28; font-weight: bold; }
+
+.recipe-item.locked {
+    opacity: 0.78;
+}
+
+.recipe-item.locked h3 {
+    color: rgba(44,44,44,0.7);
+}
+
+.recipe-item.craftable {
+    border-left-color: #6f8b46;
+    box-shadow: 2px 2px 0 rgba(86, 130, 60, 0.25);
 }
 
 .craft-btn {
