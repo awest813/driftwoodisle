@@ -289,7 +289,7 @@ export class CraftingSystem {
             this._stats.restoreWarmth(def.food.warmth);
             parts.push(`+${def.food.warmth} Warmth`);
         }
-        const verb = def.food.consumeLabel?.startsWith("Click to apply") ? "Used" : "Ate";
+        const verb = def.food.consumeVerb || "Ate";
         this._hud.showNotification(`${verb} ${def.name}${parts.length ? ` (${parts.join(", ")})` : ""}`);
         this._renderRecipes();
     }
