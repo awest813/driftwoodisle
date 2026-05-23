@@ -292,7 +292,6 @@ export class Island {
         };
 
         type Region = {
-            name: string;
             cx: number; cz: number; radius: number;
             inside: (x: number, z: number) => boolean;
             // [type, minCount, maxCount]
@@ -304,46 +303,49 @@ export class Island {
 
         const regions: Region[] = [
             {
-                name: "spawnBeach",
+                // Spawn Beach (south shore near player spawn)
                 cx: 15, cz: -25, radius: 12,
                 inside: (x, z) => this._isOnSand(x, z) && inDisc(15, -25, 12)(x, z),
                 contents: [["driftwood", 3, 5], ["stone", 4, 7], ["crab", 1, 2]]
             },
             {
-                name: "westBeach",
+                // West Beach (secondary sand base)
                 cx: -20, cz: 15, radius: 14,
                 inside: (x, z) => this._isOnSand(x, z) && inDisc(-20, 15, 14)(x, z),
                 contents: [["driftwood", 1, 3], ["stone", 2, 4], ["crab", 1, 2]]
             },
             {
-                name: "palmGrove",
+                // Palm Grove (forest)
                 cx: 28, cz: 12, radius: 14,
                 inside: (x, z) => inDisc(25, 10, 16)(x, z) && !this._inPond(x, z),
                 contents: [["tree", 6, 9], ["bush", 4, 6]]
             },
             {
-                name: "pondArea",
+                // Fish inside the pond
                 cx: 20, cz: 5, radius: 8,
-                inside: (x, z) => inDisc(20, 5, 8)(x, z) && this._inPond(x, z),
+                inside: (x, z) => this._inPond(x, z),
                 contents: [["fish", 2, 3]]
             },
             {
-                name: "pondShore",
+                // Pond shore (annular)
                 cx: 20, cz: 5, radius: 10,
-                inside: (x, z) => {
-                    const inRing = inDisc(20, 5, 10)(x, z) && !this._inPond(x, z);
-                    return inRing && !this._inBluff(x, z);
-                },
+                inside: (x, z) => inDisc(20, 5, 10)(x, z) && !this._inPond(x, z) && !this._inBluff(x, z),
                 contents: [["bush", 1, 2], ["stone", 1, 2]]
             },
             {
-                name: "rockyBluff",
+                // Bluff base — rocks at ground level around the foot of the cliff
                 cx: 0, cz: 42, radius: 11,
                 inside: (x, z) => inDisc(0, 42, 11)(x, z),
-                contents: [["rock", 2, 3], ["flint", 1, 2]]
+                contents: [["rock", 2, 3]]
             },
             {
-                name: "shipwreck",
+                // Bluff top — flint sits on the small flat cap at y≈10
+                cx: 0, cz: 45, radius: 4,
+                inside: (x, z) => inDisc(0, 45, 4)(x, z),
+                contents: [["flint", 1, 2]]
+            },
+            {
+                // Shipwreck loot near the broken mast
                 cx: -33, cz: -10, radius: 5,
                 inside: (x, z) => inDisc(-33, -10, 5)(x, z),
                 contents: [["crate", 1, 2], ["scrap", 1, 2]]
