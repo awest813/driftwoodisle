@@ -99,6 +99,7 @@ export class Island {
             REMOTE_MODELS.bush,
             REMOTE_MODELS.rock,
             REMOTE_MODELS.crate,
+            REMOTE_MODELS.barrel,
             REMOTE_MODELS.fish,
             LOCAL_MODELS.crab,
         ]);
@@ -592,7 +593,6 @@ export class Island {
         if (loaded) {
             rockMesh = loaded;
             rockMesh.position = position;
-            rockMesh.scaling = new Vector3(1.0, 1.0, 1.0);
             rockMesh.rotation = new Vector3(0, this._rng.next() * Math.PI * 2, 0);
         } else {
             rockMesh = this._baseRock.createInstance(id);
@@ -634,7 +634,9 @@ export class Island {
     }
 
     private _createCrate(position: Vector3, id: string): void {
-        const loaded = this._assets.instantiate(REMOTE_MODELS.crate);
+        // Randomly alternate between crate and barrel props for visual variety.
+        const modelUrl = this._rng.next() < 0.5 ? REMOTE_MODELS.crate : REMOTE_MODELS.barrel;
+        const loaded = this._assets.instantiate(modelUrl) ?? this._assets.instantiate(REMOTE_MODELS.crate);
         const crate: any = loaded ?? this._baseCrate.createInstance(id);
         crate.position = position;
         crate.scaling = loaded ? new Vector3(1.0, 1.0, 1.0) : new Vector3(2, 2, 2);
@@ -644,7 +646,7 @@ export class Island {
         crate.metadata = {
             interactable: {
                 id, name: "Shipwreck Crate",
-                prompt: "[Click] Smash (Requires Axe)",
+                prompt: "[Click] Smash Open",
                 interact: (inventory: any, hud: any) => {
                     SoundManager.instance?.play("wood");
                     this._spawnParticles(crate.position, new Color3(0.6, 0.4, 0.2));
@@ -765,6 +767,7 @@ export class Island {
                     SoundManager.instance?.play("crab");
                     inventory.addItem("fish", 1);
                     hud.showNotification("Caught Crab (+1 Raw Fish)");
+                    SaveSystem.markCollected(id);
                     crab.dispose();
                     setTimeout(() => {
                         if (this._baseCrab && !this._baseCrab.isDisposed()) {
