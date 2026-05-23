@@ -1,23 +1,27 @@
 // Asset URLs grouped by source. Catalog-only; loading happens in AssetLoader.
 //
-// Babylon "Village Pack" is CC-BY 4.0 (BabylonJS/Assets). Hosted on raw.githubusercontent.com,
-// which serves the .glb files with `access-control-allow-origin: *` so they fetch cleanly
-// from a browser without proxying.
+// Babylon "Village Pack" is CC-BY 4.0 (BabylonJS/Assets). A small subset is vendored
+// under public/assets/babylon/ so the game works offline and doesn't depend on GitHub
+// uptime at runtime. The fish model stays remote-only (the bundled GLB is 46 MB).
 //
-// Kenney / Poly Haven assets are CC0 but the sandbox / browser cannot pull them directly.
-// Place them under public/assets/ following the paths below; the loader will use them when
-// present and fall back to procedural meshes / textures otherwise.
+// Kenney / Poly Haven assets are CC0 but neither host is reachable from the build
+// sandbox (network policy blocks everything except GitHub) and they ship no
+// GitHub-hosted GLB mirror. Place them under public/assets/ following the LOCAL_*
+// paths below; the loader uses them when present and falls back otherwise.
 
-const BABYLON_VILLAGE = "https://raw.githubusercontent.com/BabylonJS/Assets/master/meshes/villagePack/";
 const BABYLON_ROOT = "https://raw.githubusercontent.com/BabylonJS/Assets/master/meshes/";
 
+// Vendored locally (public/assets/babylon/). Served at /assets/babylon/ by Vite.
 export const REMOTE_MODELS = {
-    tree:     `${BABYLON_VILLAGE}tree1/tree1.glb`,
-    bush:     `${BABYLON_VILLAGE}bush1/bush1.glb`,
-    rock:     `${BABYLON_VILLAGE}rocks1/rocks1.glb`,
-    crate:    `${BABYLON_VILLAGE}crate1/crate1.glb`,
-    hollowLog: `${BABYLON_VILLAGE}hollowLog/hollowLog.glb`,
-    fish:     `${BABYLON_ROOT}fish.glb`,
+    tree:      "/assets/babylon/tree1.glb",
+    tree2:     "/assets/babylon/tree2.glb",
+    bush:      "/assets/babylon/bush1.glb",
+    rock:      "/assets/babylon/rocks1.glb",
+    crate:     "/assets/babylon/crate1.glb",
+    barrel:    "/assets/babylon/barrel.glb",
+    hollowLog: "/assets/babylon/hollowLog.glb",
+    // Too large to vendor; loaded from CDN if reachable, else procedural fallback.
+    fish:      `${BABYLON_ROOT}fish.glb`,
 } as const;
 
 // Optional local overrides. If a file exists at the path, it wins. Vite serves /assets/

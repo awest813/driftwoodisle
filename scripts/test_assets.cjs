@@ -58,25 +58,21 @@ const assert = (cond, msg) => {
         assert(errors.length === 0, `no page errors (got ${errors.length}): ${errors.join(' | ')}`);
     });
 
+    // glTF instances keep the source node name (e.g. "tree1"); procedural fallback
+    // uses "tree_<i>". Accept whichever the active path produces.
     run('trees spawn (glTF or procedural fallback)', async () => {
-        assert(state.anyTreeId, 'at least one tree_* mesh exists');
-        if (remoteOk) {
-            assert(state.treeGLBLoaded, 'Village Pack tree1 GLB instance is in the scene');
-        } else {
-            assert(state.hasBaseTree, 'procedural baseTree exists as template');
-        }
+        if (remoteOk) assert(state.treeGLBLoaded, 'Village Pack tree GLB instance is in the scene');
+        else assert(state.anyTreeId && state.hasBaseTree, 'procedural tree + template exist');
     });
 
     run('bushes spawn (glTF or procedural fallback)', async () => {
-        assert(state.anyBushId, 'at least one bush_* mesh exists');
         if (remoteOk) assert(state.bushGLBLoaded, 'Village Pack bush1 GLB instance present');
-        else assert(state.hasBaseBush, 'procedural baseBush template exists');
+        else assert(state.anyBushId && state.hasBaseBush, 'procedural bush + template exist');
     });
 
     run('rocks spawn (glTF or procedural fallback)', async () => {
-        assert(state.anyRockId, 'at least one rock_* mesh exists');
         if (remoteOk) assert(state.rockGLBLoaded, 'Village Pack rocks1 GLB instance present');
-        else assert(state.hasBaseRock, 'procedural baseRock template exists');
+        else assert(state.anyRockId && state.hasBaseRock, 'procedural rock + template exist');
     });
 
     run('fish spawn (glTF or procedural fallback)', async () => {

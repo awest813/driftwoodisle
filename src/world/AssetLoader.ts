@@ -26,8 +26,8 @@ export class AssetLoader {
 
         const promise = SceneLoader.LoadAssetContainerAsync(rootUrl, filename, this._scene)
             .then(container => {
-                // Hide template meshes so only instantiated copies render.
-                container.meshes.forEach(m => m.setEnabled(false));
+                // LoadAssetContainer keeps templates out of the scene already, so no
+                // need to disable them (doing so would propagate to instantiated copies).
                 this._cache.set(url, container);
                 return container;
             })
@@ -51,7 +51,10 @@ export class AssetLoader {
         const container = this._cache.get(url);
         if (!container) return null;
         const result = container.instantiateModelsToScene(name => name);
-        return result.rootNodes[0] as TransformNode;
+        const root = result.rootNodes[0] as TransformNode;
+        root.setEnabled(true);
+        root.getChildMeshes().forEach(m => m.setEnabled(true));
+        return root;
     }
 
     public isAvailable(url: string): boolean {

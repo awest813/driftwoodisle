@@ -95,6 +95,7 @@ export class Island {
         // Fetch optional external models in parallel with no-op fallback to procedural meshes.
         await this._assets.loadAll([
             REMOTE_MODELS.tree,
+            REMOTE_MODELS.tree2,
             REMOTE_MODELS.bush,
             REMOTE_MODELS.rock,
             REMOTE_MODELS.crate,
@@ -480,11 +481,12 @@ export class Island {
 
     private _createTree(position: Vector3, id: string): void {
         let treeMesh: any;
-        const loaded = this._assets.instantiate(REMOTE_MODELS.tree);
+        const variant = this._rng.next() < 0.5 ? REMOTE_MODELS.tree : REMOTE_MODELS.tree2;
+        const loaded = this._assets.instantiate(variant) ?? this._assets.instantiate(REMOTE_MODELS.tree);
         if (loaded) {
             treeMesh = loaded;
             treeMesh.position = position;
-            treeMesh.scaling = new Vector3(3, 3, 3);
+            treeMesh.scaling = new Vector3(1.2, 1.2, 1.2);
             treeMesh.rotation = new Vector3(0, this._rng.next() * Math.PI * 2, 0);
         } else {
             treeMesh = this._baseTree.createInstance(id);
@@ -561,7 +563,7 @@ export class Island {
         const bush: any = loaded ?? this._baseBush.createInstance(id);
         bush.position = position;
         if (loaded) {
-            bush.scaling = new Vector3(1.5, 1.5, 1.5);
+            bush.scaling = new Vector3(0.7, 0.7, 0.7);
             bush.rotation = new Vector3(0, this._rng.next() * Math.PI * 2, 0);
         }
         bush.checkCollisions = true;
@@ -590,7 +592,7 @@ export class Island {
         if (loaded) {
             rockMesh = loaded;
             rockMesh.position = position;
-            rockMesh.scaling = new Vector3(1.6, 1.6, 1.6);
+            rockMesh.scaling = new Vector3(1.0, 1.0, 1.0);
             rockMesh.rotation = new Vector3(0, this._rng.next() * Math.PI * 2, 0);
         } else {
             rockMesh = this._baseRock.createInstance(id);
@@ -635,7 +637,7 @@ export class Island {
         const loaded = this._assets.instantiate(REMOTE_MODELS.crate);
         const crate: any = loaded ?? this._baseCrate.createInstance(id);
         crate.position = position;
-        crate.scaling = loaded ? new Vector3(1.6, 1.6, 1.6) : new Vector3(2, 2, 2);
+        crate.scaling = loaded ? new Vector3(1.0, 1.0, 1.0) : new Vector3(2, 2, 2);
         if (loaded) crate.rotation = new Vector3(0, this._rng.next() * Math.PI * 2, 0);
         crate.checkCollisions = true;
 
