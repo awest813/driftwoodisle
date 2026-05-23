@@ -22,6 +22,13 @@ export class BuildingSystem {
     private _validMaterial: StandardMaterial;
     private _invalidMaterial: StandardMaterial;
     private _rotationAngle: number = 0;
+    private _placedStations: { type: string; mesh: Mesh }[] = [];
+
+    public getPlacedStations(): { type: string; position: Vector3 }[] {
+        return this._placedStations
+            .filter(s => !s.mesh.isDisposed())
+            .map(s => ({ type: s.type, position: s.mesh.position }));
+    }
 
     constructor(scene: Scene, hud: HUD) {
         this._scene = scene;
@@ -81,6 +88,10 @@ export class BuildingSystem {
             this._currentGhost = MeshBuilder.CreateCylinder("ghost_campfire", { height: 0.2, diameter: 1 }, this._scene);
         } else if (type === "shelter") {
             this._currentGhost = MeshBuilder.CreateBox("ghost_shelter", { width: 3, height: 2.5, depth: 3 }, this._scene);
+        } else if (type === "workbench") {
+            this._currentGhost = MeshBuilder.CreateBox("ghost_workbench", { width: 1.6, height: 1, depth: 0.8 }, this._scene);
+        } else if (type === "dryingRack") {
+            this._currentGhost = MeshBuilder.CreateBox("ghost_dryingRack", { width: 1.8, height: 1.6, depth: 0.4 }, this._scene);
         } else {
             this._currentGhost = MeshBuilder.CreateBox("ghost_default", { size: 1 }, this._scene);
         }
@@ -124,6 +135,10 @@ export class BuildingSystem {
                 this._currentGhost.position.y += 1.25;
             } else if (this._buildingType === "campfire") {
                 this._currentGhost.position.y += 0.1;
+            } else if (this._buildingType === "workbench") {
+                this._currentGhost.position.y += 0.5;
+            } else if (this._buildingType === "dryingRack") {
+                this._currentGhost.position.y += 0.8;
             }
 
             this._currentGhost.rotation.y = this._rotationAngle;
@@ -168,6 +183,10 @@ export class BuildingSystem {
             blueprint = MeshBuilder.CreateCylinder("blueprint_campfire", { height: 0.2, diameter: 1 }, this._scene);
         } else if (type === "shelter") {
             blueprint = MeshBuilder.CreateBox("blueprint_shelter", { width: 3, height: 2.5, depth: 3 }, this._scene);
+        } else if (type === "workbench") {
+            blueprint = MeshBuilder.CreateBox("blueprint_workbench", { width: 1.6, height: 1, depth: 0.8 }, this._scene);
+        } else if (type === "dryingRack") {
+            blueprint = MeshBuilder.CreateBox("blueprint_dryingRack", { width: 1.8, height: 1.6, depth: 0.4 }, this._scene);
         } else {
             return;
         }
@@ -272,25 +291,20 @@ export class BuildingSystem {
             fire.direction1 = new Vector3(-0.2, 1, -0.2);
             fire.direction2 = new Vector3(0.2, 1, 0.2);
             fire.start();
+            // Campfire is a passive station — cooking happens via the crafting menu
+            // when the player stands within range. The mesh stays interactable only as
+            // a hint so the player learns the station exists.
             newStructure.metadata = {
                 interactable: {
                     id: "campfire_" + Date.now(),
                     name: "Campfire",
-                    prompt: "[Click] Cook Fish",
-                    interact: (inventory: any, hud: any, stats: any) => {
-                        const fish = inventory.getQuantity("fish");
-                        if (fish > 0) {
-                            SoundManager.instance?.play("fish");
-                            inventory.removeItem("fish", 1);
-                            stats.restoreHunger(40);
-                            hud.showNotification("Cooked and ate fish! (+40 Hunger)");
-                        } else {
-                            SoundManager.instance?.play("error");
-                            hud.showNotification("You need raw fish to cook.");
-                        }
+                    prompt: "[Crafting station] Open menu to cook",
+                    interact: (_inventory: any, hud: any) => {
+                        hud.showNotification("Press E to open the crafting menu while standing here.");
                     }
                 } as Interactable
             };
+            this._placedStations.push({ type: "campfire", mesh: newStructure });
             this._hud.showNotification("Campfire constructed!");
             SoundManager.instance?.play("build");
         } else if (type === "shelter") {
@@ -313,6 +327,50 @@ export class BuildingSystem {
                 } as Interactable
             };
             this._hud.showNotification("Shelter constructed!");
+            SoundManager.instance?.play("build");
+        } else if (type === "workbench") {
+            newStructure = MeshBuilder.CreateBox("workbench", { width: 1.6, height: 1, depth: 0.8 }, this._scene);
+            const mat = new StandardMaterial("workbenchMat", this._scene);
+            mat.diffuseColor = new Color3(0.55, 0.35, 0.18);
+            newStructure.material = mat;
+            newStructure.checkCollisions = true;
+            newStructure.position = position;
+            newStructure.rotation.y = rotation;
+
+            newStructure.metadata = {
+                interactable: {
+                    id: "workbench_" + Date.now(),
+                    name: "Workbench",
+                    prompt: "[Crafting station] Open menu to use",
+                    interact: (_inventory: any, hud: any) => {
+                        hud.showNotification("Press E to open the crafting menu while standing here.");
+                    }
+                } as Interactable
+            };
+            this._placedStations.push({ type: "workbench", mesh: newStructure });
+            this._hud.showNotification("Workbench constructed!");
+            SoundManager.instance?.play("build");
+        } else if (type === "dryingRack") {
+            newStructure = MeshBuilder.CreateBox("dryingRack", { width: 1.8, height: 1.6, depth: 0.4 }, this._scene);
+            const mat = new StandardMaterial("dryingRackMat", this._scene);
+            mat.diffuseColor = new Color3(0.45, 0.32, 0.2);
+            newStructure.material = mat;
+            newStructure.checkCollisions = true;
+            newStructure.position = position;
+            newStructure.rotation.y = rotation;
+
+            newStructure.metadata = {
+                interactable: {
+                    id: "dryingRack_" + Date.now(),
+                    name: "Drying Rack",
+                    prompt: "[Crafting station] Open menu to use",
+                    interact: (_inventory: any, hud: any) => {
+                        hud.showNotification("Press E to open the crafting menu while standing here.");
+                    }
+                } as Interactable
+            };
+            this._placedStations.push({ type: "dryingRack", mesh: newStructure });
+            this._hud.showNotification("Drying Rack constructed!");
             SoundManager.instance?.play("build");
         } else {
             return;

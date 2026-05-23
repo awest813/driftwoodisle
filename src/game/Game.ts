@@ -22,6 +22,7 @@ export class Game {
     private _buildingSystem: any;
     private _interactionSystem: any;
     private _mobileControls: any;
+    private _island: any;
 
     public get inventory() { return this._inventory; }
     public get stats() { return this._stats; }
@@ -64,8 +65,9 @@ export class Game {
         const { SoundManager } = await import("./SoundManager");
         new SoundManager(this._scene);
 
-        // Setup world
-        this._worldPromise = this._createPlaceholderWorld();
+        // Setup ocean eagerly; island generation is deferred until the player
+        // chooses New Game vs Load so we can seed the world correctly.
+        this._worldPromise = this._createOcean();
 
         const { MeshBuilder } = await import("@babylonjs/core/Meshes/meshBuilder");
         const { StandardMaterial } = await import("@babylonjs/core/Materials/standardMaterial");
@@ -114,6 +116,7 @@ export class Game {
             // Wait for the world to finish generating so player doesn't fall
             await LoadingScreen.step("Shaping the island terrain", 0.18, async () => {
                 await this._worldPromise;
+                await this._createIsland(isLoad);
             });
 
             await LoadingScreen.step("Tying up survival gear", 0.42, async () => {
@@ -136,7 +139,7 @@ export class Game {
             const { SaveSystem } = await import("../save/SaveSystem");
             if (isLoad && SaveSystem.hasSave()) {
                 await LoadingScreen.step("Reading the old journal", 0.82, () => {
-                    SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera);
+                    SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud);
                 });
                 this._hud.showNotification("Game Loaded");
             }
@@ -222,18 +225,34 @@ export class Game {
 
         // Auto-save every 30 seconds
         setInterval(() => {
-            SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera);
+            SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud);
             this._hud.showNotification("Game Auto-saved");
         }, 30000);
     }
 
-    private async _createPlaceholderWorld(): Promise<void> {
-        const { Island } = await import("../world/Island");
+    private async _createOcean(): Promise<void> {
         const { Ocean } = await import("../world/Ocean");
-        
         new Ocean(this._scene);
-        const island = new Island(this._scene);
-        await island.init();
+    }
+
+    private async _createIsland(isLoad: boolean): Promise<void> {
+        if (this._island) return;
+        const { Island } = await import("../world/Island");
+        const { SaveSystem } = await import("../save/SaveSystem");
+        const { generateSeed } = await import("../world/Rng");
+
+        let seed: number;
+        let collected: string[] = [];
+        const saved = isLoad ? SaveSystem.peekSavedWorld() : null;
+        if (saved) {
+            seed = saved.seed;
+            collected = saved.collected;
+        } else {
+            seed = generateSeed();
+            SaveSystem.resetCollected();
+        }
+        this._island = new Island(this._scene, seed, collected);
+        await this._island.init();
     }
 
     private _setupEscMenu(): void {
@@ -247,7 +266,7 @@ export class Game {
         };
         if (saveBtn) saveBtn.onclick = () => {
             import("../save/SaveSystem").then(({ SaveSystem }) => {
-                SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera);
+                SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud);
                 this._hud.showNotification("Game Saved manually.");
                 this._resumeGameplay();
             });
@@ -255,7 +274,7 @@ export class Game {
         if (loadBtn) loadBtn.onclick = () => {
             import("../save/SaveSystem").then(({ SaveSystem }) => {
                 if (SaveSystem.hasSave()) {
-                    SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera);
+                    SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud);
                     this._hud.showNotification("Game Loaded manually.");
                     this._resumeGameplay();
                 } else {

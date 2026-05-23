@@ -2,16 +2,32 @@ import { PlayerStats } from "../player/PlayerStats";
 import { Inventory } from "../inventory/Inventory";
 import { ITEMS, HOTBAR_ORDER, itemDef } from "../inventory/ItemRegistry";
 import type { ResourceType } from "../inventory/ItemTypes";
+import { consumeItem } from "../inventory/Consume";
+
+const HOTBAR_SIZE = 9;
 
 export class HUD {
     private _inventory: Inventory;
     private _stats: PlayerStats;
+    private _activeSlot: number = 0;
+    private _bindings: (ResourceType | null)[] = new Array(HOTBAR_SIZE).fill(null);
 
     constructor(inventory: Inventory, stats: PlayerStats) {
         this._inventory = inventory;
         this._stats = stats;
-        
+
         this._setupListeners();
+    }
+
+    public getHotbarBindings(): (ResourceType | null)[] {
+        return this._bindings.slice();
+    }
+
+    public setHotbarBindings(bindings: (ResourceType | null)[]): void {
+        for (let i = 0; i < HOTBAR_SIZE; i++) {
+            this._bindings[i] = bindings[i] ?? null;
+        }
+        this.updateInventory(this._inventory.getData());
     }
 
     private _setupListeners(): void {
@@ -38,25 +54,22 @@ export class HUD {
         this._inventory.onChange((type, delta) => {
             if (delta > 0) this._pulseSlot(type);
         });
-        
-        // Setup hotbar input
+
         window.addEventListener("keydown", (e) => {
+            if (this._isAnyMenuOpen()) return;
             if (e.key >= '1' && e.key <= '9') {
-                const index = parseInt(e.key) - 1;
-                document.querySelectorAll('.hotbar-slot').forEach((s, i) => {
-                    s.classList.toggle('active', i === index);
-                });
+                this._setActiveSlot(parseInt(e.key) - 1);
+                return;
+            }
+            if (e.code === "KeyF") {
+                this._useActiveSlot();
             }
         });
-        
-        // Mousewheel hotbar scrolling
-        let currentSlot = 0;
+
         window.addEventListener("wheel", (e) => {
-            if (e.deltaY > 0) currentSlot = (currentSlot + 1) % 9;
-            else currentSlot = (currentSlot - 1 + 9) % 9;
-            document.querySelectorAll('.hotbar-slot').forEach((s, i) => {
-                s.classList.toggle('active', i === currentSlot);
-            });
+            if (this._isAnyMenuOpen()) return;
+            const dir = e.deltaY > 0 ? 1 : -1;
+            this._setActiveSlot((this._activeSlot + dir + HOTBAR_SIZE) % HOTBAR_SIZE);
         });
 
         // Compass update
@@ -64,9 +77,30 @@ export class HUD {
     }
 
     public updateInventory(items: Record<string, number>): void {
-        const slots = document.querySelectorAll('.hotbar-slot');
+        // Clear bindings for slots whose item dropped to zero so the slot becomes
+        // available for a different type next time.
+        for (let i = 0; i < HOTBAR_SIZE; i++) {
+            const bound = this._bindings[i];
+            if (bound && (items[bound] || 0) <= 0) {
+                this._bindings[i] = null;
+            }
+        }
 
-        slots.forEach(slot => {
+        // Auto-assign any held type that isn't yet bound, following HOTBAR_ORDER
+        // so first-pickup placement feels predictable.
+        const bound = new Set(this._bindings.filter((b): b is ResourceType => b !== null));
+        for (const type of HOTBAR_ORDER) {
+            if (bound.has(type)) continue;
+            if (!ITEMS[type]?.showInHotbar) continue;
+            if ((items[type] || 0) <= 0) continue;
+            const emptyIdx = this._bindings.indexOf(null);
+            if (emptyIdx === -1) break;
+            this._bindings[emptyIdx] = type;
+            bound.add(type);
+        }
+
+        const slots = document.querySelectorAll('.hotbar-slot');
+        slots.forEach((slot, i) => {
             Array.from(slot.childNodes).forEach(child => {
                 if (child.nodeType === Node.TEXT_NODE) child.remove();
             });
@@ -74,20 +108,47 @@ export class HUD {
             if (qty) qty.textContent = '';
             (slot as HTMLElement).removeAttribute('data-item');
             (slot as HTMLElement).removeAttribute('title');
-        });
 
-        const visibleTypes = HOTBAR_ORDER.filter(t => (items[t] || 0) > 0 && ITEMS[t]?.showInHotbar);
-        visibleTypes.slice(0, 9).forEach((type, slotIndex) => {
-            const slot = slots[slotIndex] as HTMLElement;
-            if (!slot) return;
+            const type = this._bindings[i];
+            if (!type) return;
             const def = ITEMS[type];
             const count = items[type] || 0;
             slot.appendChild(document.createTextNode(def?.icon || '📦'));
-            const qty = slot.querySelector('.slot-qty');
             if (qty && count > 1) qty.textContent = count.toString();
-            slot.setAttribute('data-item', type);
-            slot.setAttribute('title', `${def?.name || type} (${count})`);
+            (slot as HTMLElement).setAttribute('data-item', type);
+            (slot as HTMLElement).setAttribute('title', `${def?.name || type} (${count})`);
         });
+
+        this._applyActiveSlotClass();
+    }
+
+    private _setActiveSlot(index: number): void {
+        if (index < 0 || index >= HOTBAR_SIZE) return;
+        this._activeSlot = index;
+        this._applyActiveSlotClass();
+    }
+
+    private _applyActiveSlotClass(): void {
+        document.querySelectorAll('.hotbar-slot').forEach((s, i) => {
+            s.classList.toggle('active', i === this._activeSlot);
+        });
+    }
+
+    private _isAnyMenuOpen(): boolean {
+        const crafting = document.getElementById("craftingMenu");
+        const esc = document.getElementById("escMenu");
+        const main = document.getElementById("mainMenu");
+        if (crafting?.classList.contains("active")) return true;
+        if (esc && esc.style.display === "flex") return true;
+        if (main && main.style.display !== "none") return true;
+        return false;
+    }
+
+    private _useActiveSlot(): void {
+        const type = this._bindings[this._activeSlot];
+        if (!type) return;
+        if (this._inventory.getQuantity(type) <= 0) return;
+        consumeItem(type, this._inventory, this._stats, this);
     }
 
     private _pulseSlot(type: ResourceType): void {

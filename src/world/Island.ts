@@ -9,6 +9,8 @@ import { ParticleSystem } from "@babylonjs/core/Particles/particleSystem";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Interactable } from "../interaction/Interactable";
 import { SoundManager } from "../game/SoundManager";
+import { Rng, generateSeed } from "./Rng";
+import { SaveSystem } from "../save/SaveSystem";
 
 let _sharedFlareTex: DynamicTexture | null = null;
 let _sharedFlareScene: Scene | null = null;
@@ -54,10 +56,22 @@ export class Island {
     private _rockTex!: DynamicTexture;
     private _sandTex!: DynamicTexture;
     private _waterTex!: DynamicTexture;
+    private _seed: number;
+    private _rng: Rng;
+    private _collected: Set<string>;
 
-    constructor(scene: Scene) {
+    constructor(scene: Scene, seed?: number, collected?: Iterable<string>) {
         this._scene = scene;
+        this._seed = (seed ?? generateSeed()) >>> 0;
+        this._rng = new Rng(this._seed);
+        this._collected = new Set(collected ?? []);
+        SaveSystem.setWorldSeed(this._seed);
+        if (collected) {
+            for (const id of this._collected) SaveSystem.markCollected(id);
+        }
     }
+
+    public get seed(): number { return this._seed; }
 
     private _initTextures(): void {
         this._woodTex = ProceduralTextures.wood(this._scene);
@@ -251,91 +265,178 @@ export class Island {
     }
 
     private _spawnNodes(): void {
-        const nodes = [
-            // Spawn Beach
-            { type: "driftwood", position: new Vector3(15, 0.25, -25) },
-            { type: "driftwood", position: new Vector3(20, 0.25, -20) },
-            { type: "driftwood", position: new Vector3(10, 0.25, -22) },
-            { type: "driftwood", position: new Vector3(22, 0.25, -28) },
-            { type: "stone", position: new Vector3(12, 0.25, -28) },
-            { type: "stone", position: new Vector3(18, 0.25, -22) },
-            { type: "stone", position: new Vector3(25, 0.25, -25) },
-            { type: "stone", position: new Vector3(14, 0.25, -18) },
-            { type: "stone", position: new Vector3(8, 0.25, -30) },
-            { type: "stone", position: new Vector3(18, 0.25, -32) },
-            { type: "stone", position: new Vector3(27, 0.25, -18) },
-            { type: "stone", position: new Vector3(4, 0.25, -17) },
-            { type: "stone", position: new Vector3(-6, 0.25, -24) },
-            { type: "stone", position: new Vector3(-18, 0.25, -4) },
-            { type: "stone", position: new Vector3(-28, 0.25, 14) },
-            { type: "stone", position: new Vector3(36, 0.25, -4) },
-            
-            // Palm Grove (Forest)
-            { type: "tree", position: new Vector3(25, 0.1, 5) },
-            { type: "tree", position: new Vector3(35, 0.1, 15) },
-            { type: "tree", position: new Vector3(20, 0.1, 25) },
-            { type: "tree", position: new Vector3(30, 0.1, 10) },
-            { type: "tree", position: new Vector3(22, 0.1, 8) },
-            { type: "tree", position: new Vector3(28, 0.1, 20) },
-            { type: "tree", position: new Vector3(32, 0.1, 2) },
-            { type: "tree", position: new Vector3(40, 0.1, 10) },
-            { type: "bush", position: new Vector3(28, 0.1, 10) },
-            { type: "bush", position: new Vector3(22, 0.1, 18) },
-            { type: "bush", position: new Vector3(34, 0.1, 8) },
-            { type: "bush", position: new Vector3(20, 0.1, 15) },
-            { type: "bush", position: new Vector3(38, 0.1, 18) },
-            
-            // Beach Crabs
-            { type: "crab", position: new Vector3(16, 0.2, -15) },
-            { type: "crab", position: new Vector3(28, 0.2, -22) },
-            { type: "crab", position: new Vector3(-15, 0.2, 22) },
-            { type: "crab", position: new Vector3(4, 0.2, -31) },
-            { type: "crab", position: new Vector3(-28, 0.2, 8) },
-            
-            // Pond Area & Fish
-            { type: "bush", position: new Vector3(-2, 0.1, 5) },
-            { type: "bush", position: new Vector3(12, 0.1, 2) },
-            { type: "stone", position: new Vector3(0, 0.25, 0) },
-            { type: "fish", position: new Vector3(5, 0.15, 5) },
-            { type: "fish", position: new Vector3(8, 0.15, -2) },
+        const placed: { x: number; z: number; r: number }[] = [];
 
-            // Rocky Bluff
-            { type: "rock", position: new Vector3(5, 0.5, 35) },
-            { type: "rock", position: new Vector3(-5, 0.5, 40) },
-            { type: "flint", position: new Vector3(0, 10.5, 45) },
+        // y offsets per type
+        const yFor = (type: string): number => {
+            switch (type) {
+                case "driftwood": case "stone": case "scrap": return 0.25;
+                case "flint": return 10.5;
+                case "tree": case "bush": return 0.1;
+                case "rock": case "crate": return 0.5;
+                case "crab": return 0.2;
+                case "fish": return 0.15;
+                default: return 0.25;
+            }
+        };
 
-            // Shipwreck
-            { type: "crate", position: new Vector3(-33, 0.5, -8) },
-            { type: "crate", position: new Vector3(-36, 0.5, -12) },
-            { type: "scrap", position: new Vector3(-30, 0.25, -10) }
+        // Radius used for rejection sampling (footprint + spacing).
+        const footprintFor = (type: string): number => {
+            switch (type) {
+                case "tree": return 1.6;
+                case "rock": return 2.2;
+                case "bush": return 1.3;
+                case "crate": return 1.2;
+                default: return 0.8;
+            }
+        };
+
+        type Region = {
+            cx: number; cz: number; radius: number;
+            inside: (x: number, z: number) => boolean;
+            // [type, minCount, maxCount]
+            contents: Array<[string, number, number]>;
+        };
+
+        const inDisc = (cx: number, cz: number, r: number) =>
+            (x: number, z: number) => (x - cx) ** 2 + (z - cz) ** 2 <= r * r;
+
+        const regions: Region[] = [
+            {
+                // Spawn Beach (south shore near player spawn)
+                cx: 15, cz: -25, radius: 12,
+                inside: (x, z) => this._isOnSand(x, z) && inDisc(15, -25, 12)(x, z),
+                contents: [["driftwood", 3, 5], ["stone", 4, 7], ["crab", 1, 2]]
+            },
+            {
+                // West Beach (secondary sand base)
+                cx: -20, cz: 15, radius: 14,
+                inside: (x, z) => this._isOnSand(x, z) && inDisc(-20, 15, 14)(x, z),
+                contents: [["driftwood", 1, 3], ["stone", 2, 4], ["crab", 1, 2]]
+            },
+            {
+                // Palm Grove (forest)
+                cx: 28, cz: 12, radius: 14,
+                inside: (x, z) => inDisc(25, 10, 16)(x, z) && !this._inPond(x, z),
+                contents: [["tree", 6, 9], ["bush", 4, 6]]
+            },
+            {
+                // Fish inside the pond
+                cx: 20, cz: 5, radius: 8,
+                inside: (x, z) => this._inPond(x, z),
+                contents: [["fish", 2, 3]]
+            },
+            {
+                // Pond shore (annular)
+                cx: 20, cz: 5, radius: 10,
+                inside: (x, z) => inDisc(20, 5, 10)(x, z) && !this._inPond(x, z) && !this._inBluff(x, z),
+                contents: [["bush", 1, 2], ["stone", 1, 2]]
+            },
+            {
+                // Bluff base — rocks at ground level around the foot of the cliff
+                cx: 0, cz: 42, radius: 11,
+                inside: (x, z) => inDisc(0, 42, 11)(x, z),
+                contents: [["rock", 2, 3]]
+            },
+            {
+                // Bluff top — flint sits on the small flat cap at y≈10
+                cx: 0, cz: 45, radius: 4,
+                inside: (x, z) => inDisc(0, 45, 4)(x, z),
+                contents: [["flint", 1, 2]]
+            },
+            {
+                // Shipwreck loot near the broken mast
+                cx: -33, cz: -10, radius: 5,
+                inside: (x, z) => inDisc(-33, -10, 5)(x, z),
+                contents: [["crate", 1, 2], ["scrap", 1, 2]]
+            }
         ];
 
-        nodes.forEach((node, i) => {
-            switch (node.type) {
-                case "driftwood": this._createPickup(node.position, `driftwood_${i}`, "Driftwood", "wood", 1, new Color3(0.6, 0.4, 0.2)); break;
-                case "stone": this._createPickup(node.position, `stone_${i}`, "Small Stone", "stone", 1, new Color3(0.5, 0.5, 0.5)); break;
-                case "flint": this._createPickup(node.position, `flint_${i}`, "Flint", "flint", 1, new Color3(0.2, 0.2, 0.2)); break;
-                case "scrap": this._createPickup(node.position, `scrap_${i}`, "Metal Scrap", "scrap", 1, new Color3(0.7, 0.7, 0.8)); break;
-                case "tree":
-                    this._createTree(node.position, `tree_${i}`);
-                    this._crabObstacles.push({ x: node.position.x, z: node.position.z, r: 1.1 });
-                    break;
-                case "bush":
-                    this._createBush(node.position, `bush_${i}`);
-                    this._crabObstacles.push({ x: node.position.x, z: node.position.z, r: 0.9 });
-                    break;
-                case "rock":
-                    this._createLargeRock(node.position, `rock_${i}`);
-                    this._crabObstacles.push({ x: node.position.x, z: node.position.z, r: 1.6 });
-                    break;
-                case "crate":
-                    this._createCrate(node.position, `crate_${i}`);
-                    this._crabObstacles.push({ x: node.position.x, z: node.position.z, r: 0.8 });
-                    break;
-                case "crab": this._createCrab(node.position, `crab_${i}`); break;
-                case "fish": this._createFish(node.position, `fish_${i}`); break;
+        let idCounter = 0;
+        const tryPlace = (region: Region, type: string): Vector3 | null => {
+            const pad = footprintFor(type);
+            for (let attempt = 0; attempt < 40; attempt++) {
+                const a = this._rng.next() * Math.PI * 2;
+                const r = Math.sqrt(this._rng.next()) * region.radius;
+                const x = region.cx + Math.cos(a) * r;
+                const z = region.cz + Math.sin(a) * r;
+                if (!region.inside(x, z)) continue;
+                let clear = true;
+                for (const p of placed) {
+                    const dx = x - p.x, dz = z - p.z;
+                    const rr = p.r + pad;
+                    if (dx * dx + dz * dz < rr * rr) { clear = false; break; }
+                }
+                if (!clear) continue;
+                placed.push({ x, z, r: pad });
+                return new Vector3(x, yFor(type), z);
             }
-        });
+            return null;
+        };
+
+        const spawn = (type: string, position: Vector3) => {
+            const id = `${type}_${idCounter++}`;
+            if (this._collected.has(id)) return;
+            this._spawnOne(type, position, id);
+        };
+
+        // Guaranteed starter kit near player spawn so the run is always playable.
+        // Player spawn is roughly (15, _, -25); we cluster items close-by.
+        const starter: Array<[string, number, number]> = [
+            ["driftwood", 14, -23],
+            ["driftwood", 17, -27],
+            ["stone", 13, -25],
+            ["stone", 19, -24]
+        ];
+        for (const [type, x, z] of starter) {
+            placed.push({ x, z, r: footprintFor(type) });
+            spawn(type, new Vector3(x, yFor(type), z));
+        }
+
+        for (const region of regions) {
+            for (const [type, min, max] of region.contents) {
+                const count = this._rng.int(min, max);
+                for (let i = 0; i < count; i++) {
+                    const pos = tryPlace(region, type);
+                    if (pos) spawn(type, pos);
+                }
+            }
+        }
+    }
+
+    private _spawnOne(type: string, position: Vector3, id: string): void {
+        switch (type) {
+            case "driftwood": this._createPickup(position, id, "Driftwood", "wood", 1, new Color3(0.6, 0.4, 0.2)); break;
+            case "stone": this._createPickup(position, id, "Small Stone", "stone", 1, new Color3(0.5, 0.5, 0.5)); break;
+            case "flint": this._createPickup(position, id, "Flint", "flint", 1, new Color3(0.2, 0.2, 0.2)); break;
+            case "scrap": this._createPickup(position, id, "Metal Scrap", "scrap", 1, new Color3(0.7, 0.7, 0.8)); break;
+            case "tree":
+                this._createTree(position, id);
+                this._crabObstacles.push({ x: position.x, z: position.z, r: 1.1 });
+                break;
+            case "bush":
+                this._createBush(position, id);
+                this._crabObstacles.push({ x: position.x, z: position.z, r: 0.9 });
+                break;
+            case "rock":
+                this._createLargeRock(position, id);
+                this._crabObstacles.push({ x: position.x, z: position.z, r: 1.6 });
+                break;
+            case "crate":
+                this._createCrate(position, id);
+                this._crabObstacles.push({ x: position.x, z: position.z, r: 0.8 });
+                break;
+            case "crab": this._createCrab(position, id); break;
+            case "fish": this._createFish(position, id); break;
+        }
+    }
+
+    private _inPond(x: number, z: number): boolean {
+        return (x - 20) * (x - 20) + (z - 5) * (z - 5) <= 8.75 * 8.75;
+    }
+
+    private _inBluff(x: number, z: number): boolean {
+        return x * x + (z - 45) * (z - 45) <= 30 * 30;
     }
 
     private _createPickup(position: Vector3, id: string, name: string, resourceType: string, amount: number, color: Color3): void {
@@ -359,6 +460,7 @@ export class Island {
                     SoundManager.instance?.play(resourceType === "stone" || resourceType === "flint" ? "stone" : "pickup");
                     inventory.addItem(resourceType, amount);
                     hud.showNotification(`+${amount} ${name}`);
+                    SaveSystem.markCollected(id);
                     mesh.dispose();
                 }
             } as Interactable
@@ -400,6 +502,7 @@ export class Island {
                         inventory.addItem("leaf", 2);
                         inventory.addItem("coconut", 1);
                         hud.showNotification("Tree Felled (+2 Wood, +2 Leaf, +1 Coconut)");
+                        SaveSystem.markCollected(id);
                         treeMesh.dispose();
                     } else {
                         const remaining = requiredHits - treeMesh.metadata.hits;
@@ -454,6 +557,7 @@ export class Island {
                     inventory.addItem("leaf", 2);
                     this._spawnParticles(bush.position, new Color3(0.2, 0.8, 0.2));
                     hud.showNotification("Gathered (+2 Fiber, +3 Berry, +2 Leaf)");
+                    SaveSystem.markCollected(id);
                     bush.dispose();
                 }
             } as Interactable
@@ -494,6 +598,7 @@ export class Island {
                     if (rockMesh.metadata.hits >= requiredHits) {
                         inventory.addItem("stone", 3);
                         hud.showNotification("Mined Rock (+3 Stone)");
+                        SaveSystem.markCollected(id);
                         rockMesh.dispose();
                     } else {
                         const remaining = requiredHits - rockMesh.metadata.hits;
@@ -522,6 +627,7 @@ export class Island {
                     inventory.addItem("scrap", 2);
                     inventory.addItem("wood", 5);
                     hud.showNotification("Smashed Crate (+3 Rope, +3 Cloth, +2 Scrap, +5 Wood)");
+                    SaveSystem.markCollected(id);
                     crate.dispose();
                 }
             } as Interactable
@@ -654,6 +760,7 @@ export class Island {
                     SoundManager.instance?.play("fish");
                     inventory.addItem("fish", 1);
                     hud.showNotification("Caught Fish (+1 Raw Fish)");
+                    SaveSystem.markCollected(id);
                     fish.dispose();
                 }
             } as Interactable

@@ -16,6 +16,12 @@ export type ResourceType =
   | "fishingRod"
   | "campfire"
   | "shelter"
+  | "workbench"
+  | "dryingRack"
+  | "cookedFish"
+  | "driedFish"
+  | "berryJam"
+  | "bandage"
   | "raftProgress";
 
 export interface Item {

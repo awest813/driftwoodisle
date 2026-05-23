@@ -1,5 +1,5 @@
 import { recipes } from "./Recipes";
-import type { Recipe } from "./Recipes";
+import type { Recipe, StationType } from "./Recipes";
 import { Inventory } from "../inventory/Inventory";
 import { HUD } from "../ui/HUD";
 import type { ResourceType } from "../inventory/ItemTypes";
@@ -8,6 +8,7 @@ import type { PlayerStats } from "../player/PlayerStats";
 import { SoundManager } from "../game/SoundManager";
 import { ITEMS, CATEGORY_LABELS, CATEGORY_ORDER, itemDef } from "../inventory/ItemRegistry";
 import type { ItemCategory } from "../inventory/ItemRegistry";
+import { consumeItem } from "../inventory/Consume";
 
 export class CraftingSystem {
     private _inventory: Inventory;
@@ -22,8 +23,19 @@ export class CraftingSystem {
         coconut: '🥥', berry: '🫐', fish: '🐟', rope: '🪢',
         cloth: '👕', scrap: '🔩', flint: '🪨',
         stoneAxe: '🪓', stonePickaxe: '⛏️', woodenSpear: '🔱', fishingRod: '🎣',
-        campfire: '🔥', shelter: '⛺', raftProgress: '⛵'
+        campfire: '🔥', shelter: '⛺', workbench: '🛠️', dryingRack: '🪤',
+        cookedFish: '🍣', driedFish: '🐠', berryJam: '🍯', bandage: '🩹',
+        raftProgress: '⛵'
     };
+    private static readonly STATION_RANGE = 4;
+    private static readonly STATION_LABEL: Record<StationType, string> = {
+        workbench: "Workbench",
+        dryingRack: "Drying Rack",
+        campfire: "Campfire"
+    };
+    private static readonly STRUCTURE_RECIPES = new Set([
+        "campfire", "shelter", "workbench", "dryingRack"
+    ]);
 
     constructor(inventory: Inventory, hud: HUD, buildingSystem: BuildingSystem, stats: PlayerStats) {
         this._inventory = inventory;
@@ -132,17 +144,21 @@ export class CraftingSystem {
 
         // Surface craftable recipes first so the player sees what's actionable.
         entries.sort(([idA, a], [idB, b]) => {
-            const structA = idA === "campfire" || idA === "shelter";
-            const structB = idB === "campfire" || idB === "shelter";
-            const canA = structA || this._canCraft(a);
-            const canB = structB || this._canCraft(b);
+            const structA = CraftingSystem.STRUCTURE_RECIPES.has(idA);
+            const structB = CraftingSystem.STRUCTURE_RECIPES.has(idB);
+            const stationOkA = !a.station || this._isNearStation(a.station);
+            const stationOkB = !b.station || this._isNearStation(b.station);
+            const canA = (structA || this._canCraft(a)) && stationOkA;
+            const canB = (structB || this._canCraft(b)) && stationOkB;
             if (canA !== canB) return canA ? -1 : 1;
             return 0;
         });
 
         entries.forEach(([id, recipe]) => {
-            const isStructure = id === "campfire" || id === "shelter";
-            const canCraft = isStructure || this._canCraft(recipe);
+            const isStructure = CraftingSystem.STRUCTURE_RECIPES.has(id);
+            const stationOk = !recipe.station || this._isNearStation(recipe.station);
+            const haveMats = this._canCraft(recipe);
+            const canCraft = (isStructure || haveMats) && stationOk;
             const btnText = isStructure ? "Place Blueprint" : "Craft";
 
             const itemEl = document.createElement("div");
@@ -160,12 +176,19 @@ export class CraftingSystem {
                     + `</span>`;
             }).join("");
 
+            const stationChip = recipe.station
+                ? `<span class="ingredient-chip ${stationOk ? "ok" : "lacking"}" title="Required station">`
+                    + `<span class="chip-icon">${this._icons[recipe.station] || ''}</span>`
+                    + `<span class="chip-count">${CraftingSystem.STATION_LABEL[recipe.station]}</span>`
+                    + `</span>`
+                : "";
+
             const resultIcon = this._icons[recipe.creates] || itemDef(recipe.creates)?.icon || '';
 
             itemEl.innerHTML = `
                 <div class="recipe-info">
                     <h3>${resultIcon} ${recipe.name}</h3>
-                    <div class="recipe-ingredients">${chips}</div>
+                    <div class="recipe-ingredients">${chips}${stationChip}</div>
                 </div>
                 <button class="craft-btn" ${canCraft ? "" : "disabled"}>${btnText}</button>
             `;
@@ -217,10 +240,11 @@ export class CraftingSystem {
                     const def = itemDef(type)!;
                     const isEdible = !!def.food;
 
+                    const consumeLabel = def.food?.consumeLabel || "Click to eat";
                     const itemEl = document.createElement("div");
                     itemEl.className = "recipe-item inv-item" + (isEdible ? " edible" : "");
                     itemEl.title = isEdible
-                        ? `${def.name} — click to eat`
+                        ? `${def.name} — ${consumeLabel.toLowerCase()}`
                         : def.name;
                     itemEl.innerHTML = `
                         <div class="inv-item-row">
@@ -228,7 +252,7 @@ export class CraftingSystem {
                             <span class="inv-name">${def.name}</span>
                             <span class="inv-qty">x${count}</span>
                         </div>
-                        ${isEdible ? `<div class="inv-hint">Click to eat</div>` : ''}
+                        ${isEdible ? `<div class="inv-hint">${consumeLabel}</div>` : ''}
                     `;
 
                     if (isEdible) {
@@ -242,24 +266,9 @@ export class CraftingSystem {
     }
 
     private _eatItem(type: string): void {
-        const def = itemDef(type);
-        if (!def?.food) return;
-        if (!this._inventory.hasItem(type as ResourceType, 1)) return;
-
-        this._inventory.removeItem(type as ResourceType, 1);
-        if (def.food.sound) SoundManager.instance?.play(def.food.sound);
-
-        const parts: string[] = [];
-        if (def.food.hunger) {
-            this._stats.restoreHunger(def.food.hunger);
-            parts.push(`+${def.food.hunger} Hunger`);
+        if (consumeItem(type as ResourceType, this._inventory, this._stats, this._hud)) {
+            this._renderRecipes();
         }
-        if (def.food.thirst) {
-            this._stats.restoreThirst(def.food.thirst);
-            parts.push(`+${def.food.thirst} Thirst`);
-        }
-        this._hud.showNotification(`Ate ${def.name}${parts.length ? ` (${parts.join(", ")})` : ""}`);
-        this._renderRecipes();
     }
 
     private _canCraft(recipe: Recipe): boolean {
@@ -268,8 +277,28 @@ export class CraftingSystem {
         });
     }
 
+    private _isNearStation(station: StationType): boolean {
+        const camera = (window as any).game?.playerController?.camera;
+        if (!camera) return false;
+        const stations = this._buildingSystem.getPlacedStations?.() ?? [];
+        const r = CraftingSystem.STATION_RANGE;
+        for (const s of stations) {
+            if (s.type !== station) continue;
+            const dx = camera.position.x - s.position.x;
+            const dz = camera.position.z - s.position.z;
+            if (dx * dx + dz * dz <= r * r) return true;
+        }
+        return false;
+    }
+
     private _craft(id: string, recipe: Recipe): void {
-        const isStructure = id === "campfire" || id === "shelter";
+        const isStructure = CraftingSystem.STRUCTURE_RECIPES.has(id);
+
+        if (recipe.station && !this._isNearStation(recipe.station)) {
+            SoundManager.instance?.play("error");
+            this._hud.showNotification(`Stand near a ${CraftingSystem.STATION_LABEL[recipe.station]} to craft this.`);
+            return;
+        }
 
         if (!isStructure && !this._canCraft(recipe)) return;
 

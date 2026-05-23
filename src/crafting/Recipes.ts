@@ -1,9 +1,12 @@
 import type { ResourceType } from "../inventory/ItemTypes";
 
+export type StationType = "workbench" | "dryingRack" | "campfire";
+
 export interface Recipe {
     name: string;
     requires: Partial<Record<ResourceType, number>>;
     creates: string;
+    station?: StationType;
 }
 
 export const recipes: Record<string, Recipe> = {
@@ -36,6 +39,40 @@ export const recipes: Record<string, Recipe> = {
     name: "Shelter ⛺",
     requires: { wood: 10, leaf: 8, fiber: 4 },
     creates: "shelter"
+  },
+  workbench: {
+    name: "Workbench 🛠️",
+    requires: { wood: 10, fiber: 5, stone: 2 },
+    creates: "workbench"
+  },
+  dryingRack: {
+    name: "Drying Rack 🪤",
+    requires: { wood: 4, fiber: 4 },
+    creates: "dryingRack"
+  },
+  cookedFish: {
+    name: "Cooked Fish 🍣",
+    requires: { fish: 1, wood: 1 },
+    creates: "cookedFish",
+    station: "campfire"
+  },
+  berryJam: {
+    name: "Berry Jam 🍯",
+    requires: { berry: 3, wood: 1 },
+    creates: "berryJam",
+    station: "campfire"
+  },
+  driedFish: {
+    name: "Dried Fish 🐠",
+    requires: { fish: 1 },
+    creates: "driedFish",
+    station: "dryingRack"
+  },
+  bandage: {
+    name: "Bandage 🩹",
+    requires: { cloth: 1, fiber: 2 },
+    creates: "bandage",
+    station: "workbench"
   },
   raftRepair: {
     name: "Repair Raft ⛵",

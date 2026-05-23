@@ -1,6 +1,6 @@
 import type { ResourceType } from "./ItemTypes";
 
-export type ItemCategory = "food" | "resource" | "tool" | "material" | "structure" | "progress";
+export type ItemCategory = "food" | "consumable" | "resource" | "tool" | "material" | "structure" | "progress";
 
 export interface ItemDef {
     type: ResourceType;
@@ -8,7 +8,12 @@ export interface ItemDef {
     icon: string;
     category: ItemCategory;
     showInHotbar: boolean;
-    food?: { hunger?: number; thirst?: number; sound?: string };
+    food?: {
+        hunger?: number; thirst?: number; health?: number; warmth?: number;
+        sound?: string;
+        consumeLabel?: string;
+        consumeVerb?: string;
+    };
 }
 
 export const ITEMS: Record<ResourceType, ItemDef> = {
@@ -32,6 +37,16 @@ export const ITEMS: Record<ResourceType, ItemDef> = {
     fishingRod:   { type: "fishingRod",   name: "Fishing Rod",   icon: "🎣", category: "tool",     showInHotbar: true },
     campfire:     { type: "campfire",     name: "Campfire",      icon: "🔥", category: "structure", showInHotbar: false },
     shelter:      { type: "shelter",      name: "Shelter",       icon: "⛺", category: "structure", showInHotbar: false },
+    workbench:    { type: "workbench",    name: "Workbench",     icon: "🛠️", category: "structure", showInHotbar: false },
+    dryingRack:   { type: "dryingRack",   name: "Drying Rack",   icon: "🪤", category: "structure", showInHotbar: false },
+    cookedFish:   { type: "cookedFish",   name: "Cooked Fish",   icon: "🍣", category: "food",     showInHotbar: true,
+        food: { hunger: 40, warmth: 5, sound: "fish" } },
+    driedFish:    { type: "driedFish",    name: "Dried Fish",    icon: "🐠", category: "food",     showInHotbar: true,
+        food: { hunger: 25, sound: "fish" } },
+    berryJam:     { type: "berryJam",     name: "Berry Jam",     icon: "🍯", category: "food",     showInHotbar: true,
+        food: { hunger: 30, thirst: 20, sound: "pickup" } },
+    bandage:      { type: "bandage",      name: "Bandage",       icon: "🩹", category: "consumable", showInHotbar: true,
+        food: { health: 25, sound: "pickup", consumeLabel: "Click to apply", consumeVerb: "Used" } },
     raftProgress: { type: "raftProgress", name: "Raft Progress", icon: "⛵", category: "progress",  showInHotbar: false },
 };
 
@@ -40,18 +55,20 @@ export const HOTBAR_ORDER: ResourceType[] = [
     "wood", "stone", "fiber", "leaf", "flint",
     "rope", "cloth", "scrap",
     "berry", "coconut", "fish",
+    "cookedFish", "driedFish", "berryJam", "bandage",
 ];
 
 export const CATEGORY_LABELS: Record<ItemCategory, string> = {
     tool: "Tools",
     food: "Food",
+    consumable: "Consumables",
     resource: "Resources",
     material: "Materials",
     structure: "Structures",
     progress: "Progress",
 };
 
-export const CATEGORY_ORDER: ItemCategory[] = ["tool", "food", "resource", "material", "structure", "progress"];
+export const CATEGORY_ORDER: ItemCategory[] = ["tool", "food", "consumable", "resource", "material", "structure", "progress"];
 
 export function itemDef(type: string): ItemDef | undefined {
     return (ITEMS as Record<string, ItemDef>)[type];
