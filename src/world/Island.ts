@@ -11,6 +11,8 @@ import type { Interactable } from "../interaction/Interactable";
 import { SoundManager } from "../game/SoundManager";
 import { Rng, generateSeed } from "./Rng";
 import { SaveSystem } from "../save/SaveSystem";
+import { AssetLoader } from "./AssetLoader";
+import { REMOTE_MODELS, LOCAL_MODELS } from "./AssetCatalog";
 
 let _sharedFlareTex: DynamicTexture | null = null;
 let _sharedFlareScene: Scene | null = null;
@@ -40,8 +42,6 @@ function cloneDynamicTextureTiled(src: DynamicTexture, uScale: number, vScale: n
 
 export class Island {
     private _scene: Scene;
-    private _treeModel: any;
-    private _rockModel: any;
     private _baseTree!: Mesh;
     private _baseBush!: Mesh;
     private _baseRock!: Mesh;
@@ -59,12 +59,14 @@ export class Island {
     private _seed: number;
     private _rng: Rng;
     private _collected: Set<string>;
+    private _assets: AssetLoader;
 
     constructor(scene: Scene, seed?: number, collected?: Iterable<string>) {
         this._scene = scene;
         this._seed = (seed ?? generateSeed()) >>> 0;
         this._rng = new Rng(this._seed);
         this._collected = new Set(collected ?? []);
+        this._assets = new AssetLoader(scene);
         SaveSystem.setWorldSeed(this._seed);
         if (collected) {
             for (const id of this._collected) SaveSystem.markCollected(id);
@@ -90,6 +92,15 @@ export class Island {
         this._createBaseMeshes();
         this._createTerrain();
         this._createRegionalMist();
+        // Fetch optional external models in parallel with no-op fallback to procedural meshes.
+        await this._assets.loadAll([
+            REMOTE_MODELS.tree,
+            REMOTE_MODELS.bush,
+            REMOTE_MODELS.rock,
+            REMOTE_MODELS.crate,
+            REMOTE_MODELS.fish,
+            LOCAL_MODELS.crab,
+        ]);
         this._spawnNodes();
         this._createRaft();
     }
@@ -469,10 +480,12 @@ export class Island {
 
     private _createTree(position: Vector3, id: string): void {
         let treeMesh: any;
-        if (this._treeModel) {
-            treeMesh = this._treeModel.instantiateHierarchy();
+        const loaded = this._assets.instantiate(REMOTE_MODELS.tree);
+        if (loaded) {
+            treeMesh = loaded;
             treeMesh.position = position;
-            treeMesh.scaling = new Vector3(2, 2, 2);
+            treeMesh.scaling = new Vector3(3, 3, 3);
+            treeMesh.rotation = new Vector3(0, this._rng.next() * Math.PI * 2, 0);
         } else {
             treeMesh = this._baseTree.createInstance(id);
             treeMesh.position = position.add(new Vector3(0, 3, 0));
@@ -512,6 +525,8 @@ export class Island {
             } as Interactable
         };
 
+        // Palm-leaf billboards only decorate the procedural cylinder fallback.
+        if (this._assets.isAvailable(REMOTE_MODELS.tree)) return;
         for (let i = 0; i < 6; i++) {
             const leaf = this._basePalmLeaf.createInstance(`${id}_leaf_${i}`);
             leaf.position = position.add(new Vector3(0, 6.2, 0));
@@ -542,8 +557,13 @@ export class Island {
     }
 
     private _createBush(position: Vector3, id: string): void {
-        const bush = this._baseBush.createInstance(id);
+        const loaded = this._assets.instantiate(REMOTE_MODELS.bush);
+        const bush: any = loaded ?? this._baseBush.createInstance(id);
         bush.position = position;
+        if (loaded) {
+            bush.scaling = new Vector3(1.5, 1.5, 1.5);
+            bush.rotation = new Vector3(0, this._rng.next() * Math.PI * 2, 0);
+        }
         bush.checkCollisions = true;
 
         bush.metadata = {
@@ -566,10 +586,12 @@ export class Island {
 
     private _createLargeRock(position: Vector3, id: string): void {
         let rockMesh: any;
-        if (this._rockModel) {
-            rockMesh = this._rockModel.instantiateHierarchy();
+        const loaded = this._assets.instantiate(REMOTE_MODELS.rock);
+        if (loaded) {
+            rockMesh = loaded;
             rockMesh.position = position;
-            rockMesh.scaling = new Vector3(1, 1, 1);
+            rockMesh.scaling = new Vector3(1.6, 1.6, 1.6);
+            rockMesh.rotation = new Vector3(0, this._rng.next() * Math.PI * 2, 0);
         } else {
             rockMesh = this._baseRock.createInstance(id);
             rockMesh.position = position.add(new Vector3(0, 1, 0));
@@ -610,9 +632,11 @@ export class Island {
     }
 
     private _createCrate(position: Vector3, id: string): void {
-        const crate = this._baseCrate.createInstance(id);
+        const loaded = this._assets.instantiate(REMOTE_MODELS.crate);
+        const crate: any = loaded ?? this._baseCrate.createInstance(id);
         crate.position = position;
-        crate.scaling = new Vector3(2, 2, 2);
+        crate.scaling = loaded ? new Vector3(1.6, 1.6, 1.6) : new Vector3(2, 2, 2);
+        if (loaded) crate.rotation = new Vector3(0, this._rng.next() * Math.PI * 2, 0);
         crate.checkCollisions = true;
 
         crate.metadata = {
@@ -656,7 +680,9 @@ export class Island {
     }
 
     private _createCrab(position: Vector3, id: string): void {
-        const crab = this._baseCrab.createInstance(id);
+        const loaded = this._assets.instantiate(LOCAL_MODELS.crab);
+        const crab: any = loaded ?? this._baseCrab.createInstance(id);
+        if (loaded) crab.scaling = new Vector3(0.5, 0.5, 0.5);
         const spawnPosition = position.clone();
         crab.position = spawnPosition.clone();
 
@@ -749,8 +775,10 @@ export class Island {
     }
 
     private _createFish(position: Vector3, id: string): void {
-        const fish = this._baseFish.createInstance(id);
+        const loaded = this._assets.instantiate(REMOTE_MODELS.fish);
+        const fish: any = loaded ?? this._baseFish.createInstance(id);
         fish.position = position;
+        if (loaded) fish.scaling = new Vector3(0.3, 0.3, 0.3);
 
         fish.metadata = {
             interactable: {
