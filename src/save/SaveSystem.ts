@@ -5,6 +5,7 @@ import { DayNightCycle } from "../world/DayNightCycle";
 import type { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { ResourceType } from "../inventory/ItemTypes";
+import type { HUD } from "../ui/HUD";
 
 export interface SaveData {
     inventory: Record<ResourceType, number>;
@@ -15,6 +16,7 @@ export interface SaveData {
     playerRotation: { x: number, y: number, z: number };
     worldSeed?: number;
     collectedNodes?: string[];
+    hotbarBindings?: (ResourceType | null)[];
 }
 
 export class SaveSystem {
@@ -46,7 +48,8 @@ export class SaveSystem {
         inventory: Inventory,
         stats: PlayerStats,
         dayNight: DayNightCycle,
-        camera: FreeCamera
+        camera: FreeCamera,
+        hud?: HUD
     ): void {
         const data: SaveData = {
             inventory: inventory.getData(),
@@ -64,7 +67,8 @@ export class SaveSystem {
                 z: camera.rotation.z
             },
             worldSeed: this._worldSeed ?? undefined,
-            collectedNodes: Array.from(this._collected)
+            collectedNodes: Array.from(this._collected),
+            hotbarBindings: hud?.getHotbarBindings()
         };
 
         localStorage.setItem(this.SAVE_KEY, JSON.stringify(data));
@@ -75,7 +79,8 @@ export class SaveSystem {
         inventory: Inventory,
         stats: PlayerStats,
         dayNight: DayNightCycle,
-        camera: FreeCamera
+        camera: FreeCamera,
+        hud?: HUD
     ): boolean {
         const rawData = localStorage.getItem(this.SAVE_KEY);
         if (!rawData) return false;
@@ -89,6 +94,7 @@ export class SaveSystem {
             if (data.day !== undefined) dayNight.setDay(data.day);
             if (typeof data.worldSeed === "number") this._worldSeed = data.worldSeed >>> 0;
             if (Array.isArray(data.collectedNodes)) this._collected = new Set(data.collectedNodes);
+            if (hud && Array.isArray(data.hotbarBindings)) hud.setHotbarBindings(data.hotbarBindings);
             
             const isFiniteVec = (v: { x: number; y: number; z: number }) =>
                 isFinite(v.x) && isFinite(v.y) && isFinite(v.z);

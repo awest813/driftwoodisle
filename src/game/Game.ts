@@ -139,7 +139,7 @@ export class Game {
             const { SaveSystem } = await import("../save/SaveSystem");
             if (isLoad && SaveSystem.hasSave()) {
                 await LoadingScreen.step("Reading the old journal", 0.82, () => {
-                    SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera);
+                    SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud);
                 });
                 this._hud.showNotification("Game Loaded");
             }
@@ -225,7 +225,7 @@ export class Game {
 
         // Auto-save every 30 seconds
         setInterval(() => {
-            SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera);
+            SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud);
             this._hud.showNotification("Game Auto-saved");
         }, 30000);
     }
@@ -266,7 +266,7 @@ export class Game {
         };
         if (saveBtn) saveBtn.onclick = () => {
             import("../save/SaveSystem").then(({ SaveSystem }) => {
-                SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera);
+                SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud);
                 this._hud.showNotification("Game Saved manually.");
                 this._resumeGameplay();
             });
@@ -274,7 +274,7 @@ export class Game {
         if (loadBtn) loadBtn.onclick = () => {
             import("../save/SaveSystem").then(({ SaveSystem }) => {
                 if (SaveSystem.hasSave()) {
-                    SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera);
+                    SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud);
                     this._hud.showNotification("Game Loaded manually.");
                     this._resumeGameplay();
                 } else {

@@ -8,6 +8,7 @@ import type { PlayerStats } from "../player/PlayerStats";
 import { SoundManager } from "../game/SoundManager";
 import { ITEMS, CATEGORY_LABELS, CATEGORY_ORDER, itemDef } from "../inventory/ItemRegistry";
 import type { ItemCategory } from "../inventory/ItemRegistry";
+import { consumeItem } from "../inventory/Consume";
 
 export class CraftingSystem {
     private _inventory: Inventory;
@@ -265,33 +266,9 @@ export class CraftingSystem {
     }
 
     private _eatItem(type: string): void {
-        const def = itemDef(type);
-        if (!def?.food) return;
-        if (!this._inventory.hasItem(type as ResourceType, 1)) return;
-
-        this._inventory.removeItem(type as ResourceType, 1);
-        if (def.food.sound) SoundManager.instance?.play(def.food.sound);
-
-        const parts: string[] = [];
-        if (def.food.hunger) {
-            this._stats.restoreHunger(def.food.hunger);
-            parts.push(`+${def.food.hunger} Hunger`);
+        if (consumeItem(type as ResourceType, this._inventory, this._stats, this._hud)) {
+            this._renderRecipes();
         }
-        if (def.food.thirst) {
-            this._stats.restoreThirst(def.food.thirst);
-            parts.push(`+${def.food.thirst} Thirst`);
-        }
-        if (def.food.health) {
-            this._stats.restoreHealth(def.food.health);
-            parts.push(`+${def.food.health} HP`);
-        }
-        if (def.food.warmth) {
-            this._stats.restoreWarmth(def.food.warmth);
-            parts.push(`+${def.food.warmth} Warmth`);
-        }
-        const verb = def.food.consumeVerb || "Ate";
-        this._hud.showNotification(`${verb} ${def.name}${parts.length ? ` (${parts.join(", ")})` : ""}`);
-        this._renderRecipes();
     }
 
     private _canCraft(recipe: Recipe): boolean {
