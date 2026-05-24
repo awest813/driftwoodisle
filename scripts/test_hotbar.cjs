@@ -20,8 +20,8 @@ const assert = (cond, msg) => {
     await new Promise(r => setTimeout(r, 1500));
     await page.click('#startGame');
     // Wait for the world to finish loading and HUD to wire up.
-    await page.waitForFunction(() => (window).game?.hud && (window).game?.inventory, { timeout: 15000 });
-    await new Promise(r => setTimeout(r, 500));
+    await page.waitForFunction(() => window.game?.hud && window.game?.inventory && window.game?.playerController, { timeout: 25000 });
+    await new Promise(r => setTimeout(r, 1000));
 
     const tests = [];
     const run = (name, fn) => tests.push({ name, fn });

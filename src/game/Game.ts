@@ -225,8 +225,10 @@ export class Game {
 
         // Auto-save every 30 seconds
         setInterval(() => {
-            SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud);
-            this._hud.showNotification("Game Auto-saved");
+            if (this._playerController) {
+                SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud);
+                this._hud.showNotification("Game Auto-saved");
+            }
         }, 30000);
     }
 

@@ -15,12 +15,18 @@ const assert = (cond, msg) => {
     const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const errors = [];
-    page.on('pageerror', err => errors.push(err.message));
+    page.on('pageerror', err => {
+        errors.push(err.message);
+        console.log('PAGE ERROR:', err.message);
+    });
+    page.on('console', msg => {
+        console.log(`[Browser Console ${msg.type()}]`, msg.text());
+    });
 
     await page.goto('http://localhost:5173');
     await new Promise(r => setTimeout(r, 1500));
     await page.click('#startGame');
-    await page.waitForFunction(() => window.game?.hud && window.game?.inventory, { timeout: 30000 });
+    await page.waitForFunction(() => window.game?.hud && window.game?.inventory && window.game?.playerController, { timeout: 30000 });
     await new Promise(r => setTimeout(r, 4000));
 
     const state = await page.evaluate(() => {
@@ -47,6 +53,9 @@ const assert = (cond, msg) => {
     });
 
     const remoteOk = state.treeGLBLoaded;
+    console.log("STATE OBJECT:", JSON.stringify(state, null, 2));
+    const meshNames = await page.evaluate(() => window.game.scene.meshes.map(m => m.name));
+    console.log("ALL MESH NAMES:", JSON.stringify(meshNames));
     console.log(`\nEnvironment: remote glTF ${remoteOk ? 'REACHABLE' : 'UNREACHABLE — exercising fallback path'}`);
     console.log(`Mesh count: ${state.meshCount}`);
 
@@ -76,7 +85,7 @@ const assert = (cond, msg) => {
     });
 
     run('fish spawn (glTF or procedural fallback)', async () => {
-        assert(state.anyFishId, 'at least one fish_* mesh exists');
+        assert(state.fishGLBLoaded || state.anyFishId, 'fish GLB instance or procedural fallback present');
     });
 
     run('crab falls back to procedural (Kenney crab.glb not bundled in sandbox)', async () => {

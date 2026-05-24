@@ -389,7 +389,11 @@ export class Island {
 
         const spawn = (type: string, position: Vector3) => {
             const id = `${type}_${idCounter++}`;
-            if (this._collected.has(id)) return;
+            console.log(`[Island.spawn] Attempting to spawn ${type} as ${id} at ${position.x.toFixed(2)}, ${position.z.toFixed(2)}`);
+            if (this._collected.has(id)) {
+                console.log(`[Island.spawn] Skipped ${id} (marked collected)`);
+                return;
+            }
             this._spawnOne(type, position, id);
         };
 
@@ -780,7 +784,15 @@ export class Island {
     }
 
     private _createFish(position: Vector3, id: string): void {
+        console.log(`[Island._createFish] Creating fish ${id} at ${position.x.toFixed(2)}, ${position.z.toFixed(2)}`);
         const loaded = this._assets.instantiate(REMOTE_MODELS.fish);
+        console.log(`[Island._createFish] loaded is: ${loaded ? 'TransformNode' : 'null fallback'}`);
+        if (loaded) {
+            loaded.name = id;
+            loaded.getChildMeshes().forEach(m => {
+                m.name = `${id}_mesh_${m.name}`;
+            });
+        }
         const fish: any = loaded ?? this._baseFish.createInstance(id);
         fish.position = position;
         if (loaded) fish.scaling = new Vector3(0.3, 0.3, 0.3);
