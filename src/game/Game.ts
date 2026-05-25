@@ -21,6 +21,7 @@ export class Game {
     private _craftingSystem: any;
     private _buildingSystem: any;
     private _interactionSystem: any;
+    private _combat: any;
     private _mobileControls: any;
     private _island: any;
 
@@ -34,6 +35,7 @@ export class Game {
     public get craftingSystem() { return this._craftingSystem; }
     public get buildingSystem() { return this._buildingSystem; }
     public get interactionSystem() { return this._interactionSystem; }
+    public get combat() { return this._combat; }
     public get mobileControls() { return this._mobileControls; }
 
     constructor(canvasId: string) {
@@ -192,7 +194,10 @@ export class Game {
 
     private async _setupInteraction(): Promise<void> {
         const { InteractionSystem } = await import("../interaction/InteractionSystem");
+        const { CombatSystem } = await import("../combat/CombatSystem");
+        this._combat = new CombatSystem(this._scene, this._hud, this._stats);
         this._interactionSystem = new InteractionSystem(this._scene, this._inventory, this._hud, this._stats);
+        this._interactionSystem.setCombat(this._combat);
     }
 
     private async _setupFishing(): Promise<void> {

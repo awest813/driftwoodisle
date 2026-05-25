@@ -23,6 +23,7 @@ export const ITEMS: Record<ResourceType, ItemDef> = {
     leaf:         { type: "leaf",         name: "Leaf",          icon: "🍃", category: "resource", showInHotbar: true },
     flint:        { type: "flint",        name: "Flint",         icon: "🔥", category: "resource", showInHotbar: true },
     scrap:        { type: "scrap",        name: "Scrap",         icon: "🔩", category: "resource", showInHotbar: true },
+    bone:         { type: "bone",         name: "Bone",          icon: "🦴", category: "resource", showInHotbar: true },
     rope:         { type: "rope",         name: "Rope",          icon: "🪢", category: "material", showInHotbar: true },
     cloth:        { type: "cloth",        name: "Cloth",         icon: "👕", category: "material", showInHotbar: true },
     berry:        { type: "berry",        name: "Berries",       icon: "🫐", category: "food",     showInHotbar: true,
@@ -38,6 +39,7 @@ export const ITEMS: Record<ResourceType, ItemDef> = {
     stoneAxe:     { type: "stoneAxe",     name: "Stone Axe",     icon: "🪓", category: "tool",     showInHotbar: true },
     stonePickaxe: { type: "stonePickaxe", name: "Stone Pickaxe", icon: "⛏️", category: "tool",     showInHotbar: true },
     woodenSpear:  { type: "woodenSpear",  name: "Wooden Spear",  icon: "🔱", category: "tool",     showInHotbar: true },
+    boneClub:     { type: "boneClub",     name: "Bone Club",     icon: "🏏", category: "tool",     showInHotbar: true },
     fishingRod:   { type: "fishingRod",   name: "Fishing Rod",   icon: "🎣", category: "tool",     showInHotbar: true },
     campfire:     { type: "campfire",     name: "Campfire",      icon: "🔥", category: "structure", showInHotbar: false },
     shelter:      { type: "shelter",      name: "Shelter",       icon: "⛺", category: "structure", showInHotbar: false },
@@ -55,8 +57,8 @@ export const ITEMS: Record<ResourceType, ItemDef> = {
 };
 
 export const HOTBAR_ORDER: ResourceType[] = [
-    "stoneAxe", "stonePickaxe", "woodenSpear", "fishingRod",
-    "wood", "stone", "fiber", "leaf", "flint",
+    "stoneAxe", "stonePickaxe", "woodenSpear", "boneClub", "fishingRod",
+    "wood", "stone", "fiber", "leaf", "flint", "bone",
     "rope", "cloth", "scrap",
     "berry", "coconut", "banana", "meat", "fish",
     "cookedFish", "driedFish", "berryJam", "bandage",

@@ -14,6 +14,7 @@ export class InteractionSystem {
     private _promptElement: HTMLElement | null;
     private _crosshairElement: HTMLElement | null;
     private _currentInteractable: Interactable | null = null;
+    private _combat: { tryAttack(): boolean } | null = null;
     private _highlightedMesh: AbstractMesh | null = null;
     private _raycastDistance: number = 5;
     private _pickTimerMs: number = 0;
@@ -51,7 +52,13 @@ export class InteractionSystem {
         });
     }
 
+    public setCombat(combat: { tryAttack(): boolean }): void {
+        this._combat = combat;
+    }
+
     public triggerInteract(): void {
+        // If the player is holding a weapon, a click is a melee swing, not a gather.
+        if (this._combat?.tryAttack()) return;
         if (!this._currentInteractable) return;
         SoundManager.instance?.play("punch");
         this._currentInteractable.interact(this._inventory, this._hud, this._stats);

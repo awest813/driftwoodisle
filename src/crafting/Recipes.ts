@@ -25,6 +25,11 @@ export const recipes: Record<string, Recipe> = {
     requires: { wood: 4, flint: 1, fiber: 2 },
     creates: "woodenSpear"
   },
+  boneClub: {
+    name: "Bone Club 🏏",
+    requires: { wood: 2, bone: 3, fiber: 2 },
+    creates: "boneClub"
+  },
   fishingRod: {
     name: "Fishing Rod",
     requires: { wood: 3, fiber: 3 },

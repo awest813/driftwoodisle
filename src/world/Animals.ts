@@ -8,6 +8,7 @@ import type { Observer } from "@babylonjs/core/Misc/observable";
 import type { Interactable } from "../interaction/Interactable";
 import type { ResourceType } from "../inventory/ItemTypes";
 import { SoundManager } from "../game/SoundManager";
+import type { Combatant } from "../combat/CombatSystem";
 
 export interface AnimalSpec {
     species: string;
@@ -64,7 +65,7 @@ export interface AnimalContext {
 
 type State = "wander" | "chase" | "flee" | "tamed";
 
-export class Animal {
+export class Animal implements Combatant {
     private _scene: Scene;
     private _spec: AnimalSpec;
     private _ctx: AnimalContext;
@@ -72,33 +73,53 @@ export class Animal {
     private _home: Vector3;
     private _target: Vector3;
     private _state: State = "wander";
+    private _maxHp: number;
     private _hp: number;
     private _tameProgress = 0;
     private _tamed = false;
+    private _dead = false;
     private _pauseUntil = 0;
     private _lastBite = 0;
+    private _windupUntil = 0;
+    private _staggerUntil = 0;
+    private _fleeUntil = 0;
+    private _enrageUntil = 0;
     private _phase = Math.random() * Math.PI * 2;
     private _obs: Observer<Scene> | null = null;
     private _disposed = false;
+    private _flashUntil = 0;
+    private _bodyMat: StandardMaterial;
+    private _baseEmissive: Color3;
+    private _barRoot: Mesh | null = null;
+    private _barFill: Mesh | null = null;
+    private _barHideAt = 0;
 
     private readonly _pad = 0.6;
     private readonly _wanderRadius = 6;
     private readonly _aggroRange = 13;
     private readonly _attackRange = 1.8;
-    private readonly _biteCooldownMs = 1200;
+    private readonly _biteCooldownMs = 1400;
+    private readonly _windupMs = 360;
+
+    public get isAlive(): boolean { return !this._dead && !this._disposed; }
+    public get isTamed(): boolean { return this._tamed; }
 
     constructor(spec: AnimalSpec, position: Vector3, ctx: AnimalContext, id: string) {
         this._scene = ctx.scene;
         this._spec = spec;
         this._ctx = ctx;
+        this._maxHp = spec.health;
         this._hp = spec.health;
         this._home = position.clone();
         this._target = position.clone();
 
         this._root = this._buildMesh(id);
         this._root.position = position.clone();
+        this._bodyMat = this._root.material as StandardMaterial;
+        this._baseEmissive = this._bodyMat.emissiveColor.clone();
 
         this._attachInteractable(id);
+        this._buildHealthBar(id);
         this._pickTarget();
 
         this._obs = this._scene.onBeforeRenderObservable.add(() => this._tick());
@@ -197,6 +218,131 @@ export class Animal {
         return root;
     }
 
+    private _buildHealthBar(id: string): void {
+        const w = 1.1, h = 0.16;
+        const bg = MeshBuilder.CreatePlane(`${id}_bar`, { width: w, height: h }, this._scene);
+        const bgMat = new StandardMaterial(`${id}_barbg`, this._scene);
+        bgMat.disableLighting = true;
+        bgMat.emissiveColor = new Color3(0.08, 0.02, 0.02);
+        bg.material = bgMat;
+        bg.billboardMode = Mesh.BILLBOARDMODE_ALL;
+        bg.isPickable = false;
+        bg.renderingGroupId = 1;
+        bg.parent = this._root;
+        const headY = (this._spec.form === "quad" ? 0.95 : 1.15) * this._spec.scale;
+        bg.position = new Vector3(0, headY, 0);
+
+        const fill = MeshBuilder.CreatePlane(`${id}_barfill`, { width: w, height: h * 0.66 }, this._scene);
+        const fillMat = new StandardMaterial(`${id}_barfm`, this._scene);
+        fillMat.disableLighting = true;
+        fillMat.emissiveColor = new Color3(0.3, 0.8, 0.25);
+        fill.material = fillMat;
+        fill.isPickable = false;
+        fill.renderingGroupId = 1;
+        fill.parent = bg;
+        fill.position = new Vector3(0, 0, -0.01);
+
+        this._barRoot = bg;
+        this._barFill = fill;
+        bg.setEnabled(false);
+    }
+
+    private _updateHealthBar(): void {
+        if (!this._barFill) return;
+        const ratio = Math.max(0, Math.min(1, this._hp / this._maxHp));
+        this._barFill.scaling.x = ratio || 0.0001;
+        this._barFill.position.x = -(1 - ratio) * 1.1 / 2;
+        const mat = this._barFill.material as StandardMaterial;
+        // green -> yellow -> red
+        mat.emissiveColor = new Color3(
+            ratio < 0.5 ? 0.85 : 0.85 - (ratio - 0.5) * 1.1,
+            ratio < 0.5 ? 0.25 + ratio * 1.1 : 0.8,
+            0.18,
+        );
+    }
+
+    public takeHit(damage: number, fromPosition: Vector3, knockback: number): void {
+        if (!this.isAlive || this._tamed) return;
+        const now = performance.now();
+        this._hp -= damage;
+
+        // hit flash
+        this._flashUntil = now + 140;
+        this._bodyMat.emissiveColor = new Color3(0.6, 0.06, 0.06);
+
+        // knockback away from the attacker, clamped to walkable ground
+        const dir = this._root.position.subtract(fromPosition);
+        dir.y = 0;
+        if (dir.lengthSquared() > 1e-4) {
+            dir.normalize();
+            for (const f of [1, 0.5, 0.25]) {
+                const nx = this._root.position.x + dir.x * knockback * f;
+                const nz = this._root.position.z + dir.z * knockback * f;
+                if (this._ctx.isWalkable(nx, nz) && this._ctx.isClear(nx, nz, this._pad)) {
+                    this._root.position.x = nx;
+                    this._root.position.z = nz;
+                    break;
+                }
+            }
+        }
+
+        this._staggerUntil = now + 320;
+        this._windupUntil = 0; // interrupt any telegraphed bite
+
+        if (this._barRoot) {
+            this._barRoot.setEnabled(true);
+            this._barHideAt = now + 5000;
+            this._updateHealthBar();
+        }
+        SoundManager.instance?.play("hurt");
+
+        const hud = (window as any).game?.hud;
+        if (this._hp <= 0) {
+            this._die(hud);
+            return;
+        }
+
+        // reaction: prey flees, predators enrage
+        if (this._spec.hostile) {
+            this._enrageUntil = now + 4000;
+            this._state = "chase";
+            if (Math.random() < 0.4) SoundManager.instance?.play("roar");
+        } else {
+            this._fleeUntil = now + 6000;
+            this._state = "flee";
+        }
+    }
+
+    private _die(hud: any): void {
+        if (this._dead) return;
+        this._dead = true;
+        this._barRoot?.setEnabled(false);
+
+        const inv = (window as any).game?.inventory;
+        const drops: string[] = [];
+        const meat = this._spec.species === "monkey" ? 1 : 2;
+        inv?.addItem?.("meat", meat);
+        drops.push(`+${meat} Raw Meat`);
+        if (this._spec.species !== "monkey" && Math.random() < 0.85) {
+            inv?.addItem?.("bone", 1);
+            drops.push("+1 Bone");
+        }
+        hud?.showNotification?.(`You took down the ${this._spec.name}. (${drops.join(", ")})`, "gain");
+
+        // topple-and-sink death, then remove
+        const start = performance.now();
+        const baseY = this._root.position.y;
+        const dieObs = this._scene.onBeforeRenderObservable.add(() => {
+            const t = (performance.now() - start) / 850;
+            this._root.rotation.z = Math.min(Math.PI / 2, t * Math.PI * 0.8);
+            this._root.position.y = baseY - Math.min(0.55, t * 0.6);
+            if (t >= 1) {
+                this._scene.onBeforeRenderObservable.remove(dieObs);
+                this._root.dispose();
+            }
+        });
+    }
+
     private _playerXZ(): { x: number; z: number } | null {
         const cam = this._scene.activeCamera;
         if (!cam) return null;
@@ -239,9 +385,20 @@ export class Animal {
     }
 
     private _tick(): void {
-        if (this._disposed) return;
+        if (this._disposed || this._dead) return;
         const dt = Math.min(0.05, this._scene.getEngine().getDeltaTime() / 1000);
         const now = performance.now();
+
+        // Reset hit flash.
+        if (this._flashUntil && now > this._flashUntil) {
+            this._flashUntil = 0;
+            this._bodyMat.emissiveColor = this._baseEmissive.clone();
+        }
+        // Auto-hide the health bar once combat lulls.
+        if (this._barRoot?.isEnabled() && now > this._barHideAt) {
+            this._barRoot.setEnabled(false);
+        }
+
         const player = this._playerXZ();
         const runEnded = document.body.classList.contains("run-ended");
 
@@ -252,17 +409,27 @@ export class Animal {
             distToPlayer = Math.sqrt(dx * dx + dz * dz);
         }
 
+        // Stagger from a hit: freeze movement briefly.
+        if (now < this._staggerUntil) {
+            this._root.position.y = this._home.y;
+            return;
+        }
+
         // Decide state.
         if (this._tamed) {
             this._state = "tamed";
+        } else if (now < this._fleeUntil) {
+            this._state = "flee";
         } else if (this._spec.hostile && player && !runEnded && distToPlayer < this._aggroRange) {
             this._state = "chase";
-        } else if (this._state === "chase") {
+        } else if (this._state === "chase" || this._state === "flee") {
             this._state = "wander";
         }
 
+        const enraged = now < this._enrageUntil;
+        const speed = this._spec.speed * (enraged ? 1.3 : 1);
+
         if (this._state === "tamed" && player) {
-            // Follow the player, keeping a small distance.
             if (distToPlayer > 3.5) {
                 this._faceAndStep(player.x, player.z, this._spec.speed, dt);
             } else {
@@ -271,15 +438,42 @@ export class Animal {
             return;
         }
 
+        if (this._state === "flee" && player) {
+            // Run directly away from the player.
+            const awayX = this._root.position.x + (this._root.position.x - player.x);
+            const awayZ = this._root.position.z + (this._root.position.z - player.z);
+            const moved = this._faceAndStep(awayX, awayZ, this._spec.speed * 1.25, dt);
+            if (!moved && !this._ctx.isWalkable(awayX, awayZ)) {
+                // cornered: sidestep
+                this._faceAndStep(this._home.x, this._home.z, this._spec.speed, dt);
+            }
+            return;
+        }
+
         if (this._state === "chase" && player) {
+            this._root.rotation.y = Math.atan2(player.x - this._root.position.x, player.z - this._root.position.z);
             if (distToPlayer <= this._attackRange) {
-                this._root.rotation.y = Math.atan2(player.x - this._root.position.x, player.z - this._root.position.z);
-                if (now - this._lastBite > this._biteCooldownMs) {
-                    this._lastBite = now;
-                    this._bitePlayer();
+                // Telegraph: wind up, then bite. Interrupted by stagger (windup reset on hit).
+                const cooldown = enraged ? this._biteCooldownMs * 0.65 : this._biteCooldownMs;
+                if (this._windupUntil === 0 && now - this._lastBite > cooldown) {
+                    this._windupUntil = now + this._windupMs;
+                    if (Math.random() < 0.5) SoundManager.instance?.play("roar");
+                }
+                if (this._windupUntil > 0) {
+                    // rear back during the windup so the player can react
+                    const wp = 1 - Math.max(0, (this._windupUntil - now) / this._windupMs);
+                    this._root.rotation.x = -0.5 * Math.sin(wp * Math.PI);
+                    if (now >= this._windupUntil) {
+                        this._windupUntil = 0;
+                        this._lastBite = now;
+                        this._root.rotation.x = 0;
+                        this._bitePlayer();
+                    }
                 }
             } else {
-                this._faceAndStep(player.x, player.z, this._spec.speed, dt);
+                this._root.rotation.x = 0;
+                this._windupUntil = 0;
+                this._faceAndStep(player.x, player.z, speed, dt);
             }
             return;
         }
@@ -299,12 +493,15 @@ export class Animal {
     }
 
     private _bitePlayer(): void {
+        const combat = (window as any).game?.combat;
+        if (combat?.damagePlayer) {
+            combat.damagePlayer(this._spec.biteDamage, this._spec.name);
+            return;
+        }
+        // Fallback if the combat system isn't wired yet.
         const stats = (window as any).game?.stats;
-        const hud = (window as any).game?.hud;
-        if (!stats) return;
-        stats.decreaseHealth(this._spec.biteDamage);
+        stats?.decreaseHealth?.(this._spec.biteDamage);
         SoundManager.instance?.play("punch");
-        hud?.showNotification(`${this._spec.name} attacks you!`, "danger");
     }
 
     private _attachInteractable(id: string): void {
@@ -316,7 +513,7 @@ export class Animal {
                 : `[Click] Approach ${this._spec.name}`,
             interact: (inventory: any, hud: any) => this._onInteract(inventory, hud),
         };
-        this._root.metadata = { interactable };
+        this._root.metadata = { interactable, combatant: this };
     }
 
     private _refreshPrompt(): void {
@@ -356,23 +553,9 @@ export class Animal {
             return;
         }
 
-        // No food — try to fight if armed with a spear.
-        if (inventory.getQuantity("woodenSpear") > 0) {
-            this._hp -= 34;
-            SoundManager.instance?.play("punch");
-            if (this._hp <= 0) {
-                hud?.showNotification(`You took down the ${this._spec.name}. (+2 Raw Meat)`, "gain");
-                inventory.addItem("meat", 2);
-                this._root.dispose();
-            } else {
-                hud?.showNotification(`You strike the ${this._spec.name}!`, "warn");
-            }
-            return;
-        }
-
-        // Unarmed and no food.
+        // No food in hand.
         if (this._spec.hostile) {
-            hud?.showNotification(`The ${this._spec.name} snarls — bring meat to tame it, or a spear to fight.`, "warn");
+            hud?.showNotification(`The ${this._spec.name} snarls — bring meat to tame it, or a weapon to fight.`, "warn");
         } else {
             hud?.showNotification(`The ${this._spec.name} is wary — offer ${this._foodHint()} to tame it.`, "warn");
         }

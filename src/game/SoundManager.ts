@@ -13,7 +13,12 @@ type SoundCue =
     | "error"
     | "menu"
     | "punch"
-    | "step";
+    | "step"
+    | "swing"
+    | "hit"
+    | "hurt"
+    | "roar"
+    | "playerHurt";
 
 export class SoundManager {
     private static _instance: SoundManager | null = null;
@@ -104,6 +109,11 @@ export class SoundManager {
             case "menu": this._pluck(520, 0.04, 0.08); break;
             case "punch": this._noiseTick(0.04, 0.11, 700); break;
             case "step": this._noiseTick(0.025, 0.07, 550); break;
+            case "swing": this._playNoiseBurst(0.05, 0.1, 2600, 0.12); break;
+            case "hit": this._knock(180, 0.07, 0.2); this._noiseTick(0.05, 0.12, 900); break;
+            case "hurt": this._tone(520, 0.12, "sawtooth", 0.1); this._tone(360, 0.16, "triangle", 0.07, 0.04); break;
+            case "roar": this._tone(110, 0.32, "sawtooth", 0.13); this._tone(70, 0.4, "square", 0.09, 0.03); break;
+            case "playerHurt": this._tone(150, 0.2, "sawtooth", 0.13); this._noiseTick(0.07, 0.16, 500); break;
         }
     }
 

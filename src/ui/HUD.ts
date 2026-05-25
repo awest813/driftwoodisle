@@ -29,6 +29,12 @@ export class HUD {
         return this._bindings.slice();
     }
 
+    public getActiveItem(): ResourceType | null {
+        const type = this._bindings[this._activeSlot];
+        if (!type || this._inventory.getQuantity(type) <= 0) return null;
+        return type;
+    }
+
     public setHotbarBindings(bindings: (ResourceType | null)[]): void {
         for (let i = 0; i < HOTBAR_SIZE; i++) {
             this._bindings[i] = bindings[i] ?? null;
