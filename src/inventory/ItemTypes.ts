@@ -5,6 +5,8 @@ export type ResourceType =
   | "leaf"
   | "berry"
   | "coconut"
+  | "banana"
+  | "meat"
   | "fish"
   | "rope"
   | "cloth"

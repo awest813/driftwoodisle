@@ -29,6 +29,10 @@ export const ITEMS: Record<ResourceType, ItemDef> = {
         food: { hunger: 5, thirst: 5, sound: "pickup" } },
     coconut:      { type: "coconut",      name: "Coconut",       icon: "🥥", category: "food",     showInHotbar: true,
         food: { hunger: 15, thirst: 20, sound: "wood" } },
+    banana:       { type: "banana",       name: "Banana",        icon: "🍌", category: "food",     showInHotbar: true,
+        food: { hunger: 12, thirst: 5, sound: "pickup" } },
+    meat:         { type: "meat",         name: "Raw Meat",      icon: "🥩", category: "food",     showInHotbar: true,
+        food: { hunger: 18, sound: "fish" } },
     fish:         { type: "fish",         name: "Raw Fish",      icon: "🐟", category: "food",     showInHotbar: true,
         food: { hunger: 10, sound: "fish" } },
     stoneAxe:     { type: "stoneAxe",     name: "Stone Axe",     icon: "🪓", category: "tool",     showInHotbar: true },
@@ -54,7 +58,7 @@ export const HOTBAR_ORDER: ResourceType[] = [
     "stoneAxe", "stonePickaxe", "woodenSpear", "fishingRod",
     "wood", "stone", "fiber", "leaf", "flint",
     "rope", "cloth", "scrap",
-    "berry", "coconut", "fish",
+    "berry", "coconut", "banana", "meat", "fish",
     "cookedFish", "driedFish", "berryJam", "bandage",
 ];
 

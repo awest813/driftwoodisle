@@ -11,6 +11,7 @@ Survive on a stranded island by gathering resources, crafting tools, fishing, ma
 - First-person movement and mouse look
 - Resource gathering and tool-based harvesting
 - Crafting and backpack management
+- Wildlife to tame (monkeys, boars) or fight (wolves, tigers)
 - Fishing, hunger, thirst, stamina, warmth, and health systems
 - Day/night cycle and weather effects
 - Save/load support and in-game settings

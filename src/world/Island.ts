@@ -13,6 +13,7 @@ import { Rng, generateSeed } from "./Rng";
 import { SaveSystem } from "../save/SaveSystem";
 import { AssetLoader } from "./AssetLoader";
 import { REMOTE_MODELS, LOCAL_MODELS } from "./AssetCatalog";
+import { Animal, ANIMAL_SPECS } from "./Animals";
 
 let _sharedFlareTex: DynamicTexture | null = null;
 let _sharedFlareScene: Scene | null = null;
@@ -289,6 +290,8 @@ export class Island {
                 case "rock": case "crate": return 0.5;
                 case "crab": return 0.2;
                 case "fish": return 0.15;
+                case "banana": return 0.25;
+                case "monkey": case "boar": case "wolf": case "tiger": return 0.05;
                 default: return 0.25;
             }
         };
@@ -300,6 +303,7 @@ export class Island {
                 case "rock": return 2.2;
                 case "bush": return 1.3;
                 case "crate": return 1.2;
+                case "monkey": case "boar": case "wolf": case "tiger": return 1.4;
                 default: return 0.8;
             }
         };
@@ -331,7 +335,7 @@ export class Island {
                 // Palm Grove (forest)
                 cx: 28, cz: 12, radius: 14,
                 inside: (x, z) => inDisc(25, 10, 16)(x, z) && !this._inPond(x, z),
-                contents: [["tree", 6, 9], ["bush", 4, 6]]
+                contents: [["tree", 6, 9], ["bush", 4, 6], ["banana", 3, 4], ["monkey", 2, 3], ["wolf", 1, 1]]
             },
             {
                 // Fish inside the pond
@@ -350,6 +354,12 @@ export class Island {
                 cx: 0, cz: 42, radius: 11,
                 inside: (x, z) => inDisc(0, 42, 11)(x, z),
                 contents: [["rock", 2, 3]]
+            },
+            {
+                // Inland clearing between the grove and the beaches — predator territory
+                cx: 5, cz: 18, radius: 12,
+                inside: (x, z) => inDisc(5, 18, 12)(x, z) && this._isWalkable(x, z),
+                contents: [["tiger", 1, 1], ["boar", 1, 2]]
             },
             {
                 // Bluff top — flint sits on the small flat cap at y≈10
@@ -374,6 +384,9 @@ export class Island {
                 const x = region.cx + Math.cos(a) * r;
                 const z = region.cz + Math.sin(a) * r;
                 if (!region.inside(x, z)) continue;
+                // Mobile creatures must start on ground they can actually roam.
+                if ((type === "monkey" || type === "boar" || type === "wolf" || type === "tiger")
+                    && !this._isWalkable(x, z)) continue;
                 let clear = true;
                 for (const p of placed) {
                     const dx = x - p.x, dz = z - p.z;
@@ -445,6 +458,9 @@ export class Island {
                 break;
             case "crab": this._createCrab(position, id); break;
             case "fish": this._createFish(position, id); break;
+            case "banana": this._createPickup(position, id, "Banana", "banana", 1, new Color3(0.9, 0.8, 0.2)); break;
+            case "monkey": case "boar": case "wolf": case "tiger":
+                this._createAnimal(type, position, id); break;
         }
     }
 
@@ -678,6 +694,17 @@ export class Island {
         return !inGrove && !inBluff && !inPond;
     }
 
+    // Flat ground animals can roam: sand beaches plus the grass grove, but not
+    // the water pond or the elevated rocky bluff (which would float the mesh).
+    private _isWalkable(x: number, z: number): boolean {
+        const inBase1 = (x - 10) * (x - 10) + (z + 10) * (z + 10) <= 70 * 70;
+        const inBase2 = (x + 20) * (x + 20) + (z - 20) * (z - 20) <= 60 * 60;
+        if (!inBase1 && !inBase2) return false;
+        if (this._inPond(x, z)) return false;
+        if (this._inBluff(x, z)) return false;
+        return true;
+    }
+
     private _isClearOfObstacles(x: number, z: number, pad: number): boolean {
         for (const o of this._crabObstacles) {
             const dx = x - o.x, dz = z - o.z;
@@ -685,6 +712,16 @@ export class Island {
             if (dx * dx + dz * dz < rr * rr) return false;
         }
         return true;
+    }
+
+    private _createAnimal(species: string, position: Vector3, id: string): void {
+        const spec = ANIMAL_SPECS[species];
+        if (!spec) return;
+        new Animal(spec, position, {
+            scene: this._scene,
+            isWalkable: (x, z) => this._isWalkable(x, z),
+            isClear: (x, z, pad) => this._isClearOfObstacles(x, z, pad),
+        }, id);
     }
 
     private _createCrab(position: Vector3, id: string): void {
