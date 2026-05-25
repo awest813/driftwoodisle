@@ -11,6 +11,12 @@ export class HUD {
     private _stats: PlayerStats;
     private _activeSlot: number = 0;
     private _bindings: (ResourceType | null)[] = new Array(HOTBAR_SIZE).fill(null);
+    // 0 = ok, 1 = warned low, 2 = warned depleted
+    private _needWarnLevel: Record<"hunger" | "thirst" | "warmth", number> = {
+        hunger: 0,
+        thirst: 0,
+        warmth: 0,
+    };
 
     constructor(inventory: Inventory, stats: PlayerStats) {
         this._inventory = inventory;
@@ -45,6 +51,8 @@ export class HUD {
             
             const tDisp = document.getElementById("tempDisplay");
             if (tDisp) tDisp.innerText = Math.round((stats.warmth / 100) * 37).toString();
+
+            this._checkNeedWarnings(stats);
         });
 
         this._inventory.addListener((items: any) => {
@@ -159,6 +167,30 @@ export class HUD {
         // force reflow to restart the animation
         void slot.offsetWidth;
         slot.classList.add('pulse');
+    }
+
+    private _checkNeedWarnings(stats: { hunger: number; thirst: number; warmth: number }): void {
+        const needs = [
+            { key: "hunger" as const, value: stats.hunger, depleted: "You're starving — your health is draining. Find food.", low: "You're getting hungry." },
+            { key: "thirst" as const, value: stats.thirst, depleted: "You're parched — your health is draining. Find fresh water.", low: "You're getting thirsty." },
+            { key: "warmth" as const, value: stats.warmth, depleted: "You're freezing — your health is draining. Get warm by a fire.", low: "You're getting cold." },
+        ];
+        for (const need of needs) {
+            const level = this._needWarnLevel[need.key];
+            if (need.value <= 0) {
+                if (level < 2) {
+                    this.showNotification(need.depleted, "danger");
+                    this._needWarnLevel[need.key] = 2;
+                }
+            } else if (need.value <= 25) {
+                if (level < 1) {
+                    this.showNotification(need.low, "warn");
+                    this._needWarnLevel[need.key] = 1;
+                }
+            } else if (need.value > 40) {
+                this._needWarnLevel[need.key] = 0;
+            }
+        }
     }
 
     private _updateStat(key: string, value: number): void {
