@@ -14,11 +14,14 @@ export class InteractionSystem {
     private _promptElement: HTMLElement | null;
     private _crosshairElement: HTMLElement | null;
     private _currentInteractable: Interactable | null = null;
+    private _combat: { tryAttack(): boolean; isArmed(): boolean; weaponRange(): number } | null = null;
     private _highlightedMesh: AbstractMesh | null = null;
+    private _highlightAttack: boolean = false;
     private _raycastDistance: number = 5;
     private _pickTimerMs: number = 0;
     private readonly _pickIntervalMs: number = 80;
     private readonly _selectorColor = new Color3(1, 0.78, 0.28);
+    private readonly _enemyColor = new Color3(1, 0.25, 0.2);
 
     constructor(scene: Scene, inventory: any, hud: any, stats: any) {
         this._scene = scene;
@@ -51,7 +54,13 @@ export class InteractionSystem {
         });
     }
 
+    public setCombat(combat: { tryAttack(): boolean; isArmed(): boolean; weaponRange(): number }): void {
+        this._combat = combat;
+    }
+
     public triggerInteract(): void {
+        // If the player is holding a weapon, a click is a melee swing, not a gather.
+        if (this._combat?.tryAttack()) return;
         if (!this._currentInteractable) return;
         SoundManager.instance?.play("punch");
         this._currentInteractable.interact(this._inventory, this._hud, this._stats);
@@ -76,9 +85,14 @@ export class InteractionSystem {
 
         if (targetMesh) {
             const interactable = targetMesh.metadata.interactable as Interactable;
-            this._showPrompt(interactable);
+            const attackable = this._asAttackTarget(targetMesh, camera);
+            if (attackable) {
+                this._showAttackPrompt(interactable.name);
+            } else {
+                this._showPrompt(interactable);
+            }
             this._currentInteractable = interactable;
-            this._setHighlightedMesh(targetMesh);
+            this._setHighlightedMesh(targetMesh, attackable);
         } else {
             this._hidePrompt();
             this._currentInteractable = null;
@@ -86,8 +100,8 @@ export class InteractionSystem {
         }
     }
 
-    private _setHighlightedMesh(mesh: AbstractMesh | null): void {
-        if (this._highlightedMesh === mesh) return;
+    private _setHighlightedMesh(mesh: AbstractMesh | null, attack: boolean = false): void {
+        if (this._highlightedMesh === mesh && this._highlightAttack === attack) return;
 
         if (this._highlightedMesh) {
             this._highlightedMesh.renderOverlay = false;
@@ -95,16 +109,29 @@ export class InteractionSystem {
         }
 
         this._highlightedMesh = mesh;
+        this._highlightAttack = attack;
 
         if (this._highlightedMesh) {
             this._highlightedMesh.renderOutline = false;
             this._highlightedMesh.renderOverlay = true;
-            this._highlightedMesh.overlayColor = this._selectorColor;
-            this._highlightedMesh.overlayAlpha = 0.18;
+            this._highlightedMesh.overlayColor = attack ? this._enemyColor : this._selectorColor;
+            this._highlightedMesh.overlayAlpha = attack ? 0.28 : 0.18;
             this._crosshairElement?.classList.add("targeted");
+            this._crosshairElement?.classList.toggle("enemy", attack);
         } else {
             this._crosshairElement?.classList.remove("targeted");
+            this._crosshairElement?.classList.remove("enemy");
         }
+    }
+
+    private _asAttackTarget(mesh: AbstractMesh, camera: any): boolean {
+        if (!this._combat?.isArmed()) return false;
+        const c = mesh.metadata?.combatant as { isAlive: boolean; isTamed: boolean } | undefined;
+        if (!c || !c.isAlive || c.isTamed) return false;
+        const dist = mesh.getAbsolutePosition().subtract(camera.position).length();
+        // Matches the combat "engage" range (weapon reach + a small lunge window)
+        // so the red prompt appears exactly when a click would swing.
+        return dist <= this._combat.weaponRange() + 2;
     }
 
     private _findNearbyInteractable(): AbstractMesh | null {
@@ -151,6 +178,23 @@ export class InteractionSystem {
             this._promptElement.append(nameElement, actionElement);
             this._promptElement.style.opacity = "1";
         }
+    }
+
+    private _showAttackPrompt(name: string): void {
+        if (!this._promptElement) return;
+        this._promptElement.replaceChildren();
+        this._promptElement.setAttribute("aria-label", `${name}: Attack`);
+
+        const nameElement = document.createElement("span");
+        nameElement.className = "interaction-name";
+        nameElement.textContent = name;
+
+        const actionElement = document.createElement("span");
+        actionElement.className = "interaction-action";
+        actionElement.textContent = "Click - Attack";
+
+        this._promptElement.append(nameElement, actionElement);
+        this._promptElement.style.opacity = "1";
     }
 
     private _formatPromptAction(interactable: Interactable): string {

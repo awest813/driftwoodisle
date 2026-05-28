@@ -11,6 +11,8 @@ Survive on a stranded island by gathering resources, crafting tools, fishing, ma
 - First-person movement and mouse look
 - Resource gathering and tool-based harvesting
 - Crafting and backpack management
+- Wildlife to tame (monkeys, boars) or fight (wolves, tigers)
+- Melee combat with weapon stats, enemy health bars, knockback, and hit feedback
 - Fishing, hunger, thirst, stamina, warmth, and health systems
 - Day/night cycle and weather effects
 - Save/load support and in-game settings
@@ -36,7 +38,8 @@ npm run preview
 - **WASD / Arrow keys**: Move
 - **Mouse**: Look around
 - **Shift**: Sprint
-- **Click**: Interact / gather
+- **Click**: Interact / gather — or swing your weapon when a Spear or Bone Club is equipped
+- **1-9 / Scroll**: Select hotbar slot (equip weapons & tools)
 - **Right-click water**: Fish
 - **Tab / E**: Open backpack & crafting
 - **Esc**: Pause

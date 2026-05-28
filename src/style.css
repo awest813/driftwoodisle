@@ -555,6 +555,60 @@ html, body {
     border-color: rgba(255, 210, 118, 0.7);
 }
 
+/* Aiming a weapon at a live enemy: red reticle */
+#crosshair.enemy {
+    border-color: #ff5a48 !important;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.65), 0 0 12px rgba(255, 80, 60, 0.6) !important;
+}
+
+#crosshair.enemy::after {
+    border-color: rgba(255, 90, 72, 0.7);
+}
+
+/* Combat swing: quick crosshair kick */
+#crosshair.strike {
+    animation: crosshair-strike 0.22s ease-out;
+}
+
+@keyframes crosshair-strike {
+    0%   { transform: translate(-50%, -50%) scale(1); }
+    35%  { transform: translate(-50%, -50%) scale(0.7) rotate(45deg); }
+    100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+
+/* Hit marker: a brief red X flash when a swing connects */
+#crosshair.hit {
+    border-color: #ff5a48 !important;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.65), 0 0 16px rgba(255, 80, 60, 0.85) !important;
+}
+
+#crosshair.hit::before {
+    background: #ff5a48;
+    width: 6px;
+    height: 6px;
+}
+
+/* Red damage vignette flashed when the player is struck */
+#damageVignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2500;
+    opacity: 0;
+    box-shadow: inset 0 0 140px 40px rgba(180, 20, 20, 0.85);
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(150, 10, 10, 0.35) 100%);
+}
+
+#damageVignette.flash {
+    animation: dmg-flash 0.5s ease-out;
+}
+
+@keyframes dmg-flash {
+    0%   { opacity: 0; }
+    12%  { opacity: var(--dmg, 0.7); }
+    100% { opacity: 0; }
+}
+
 #interactionPrompt {
     position: absolute;
     top: calc(50% + 54px);
