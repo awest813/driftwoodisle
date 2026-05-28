@@ -8,6 +8,7 @@ import type { Observer } from "@babylonjs/core/Misc/observable";
 import type { Interactable } from "../interaction/Interactable";
 import type { ResourceType } from "../inventory/ItemTypes";
 import { SoundManager } from "../game/SoundManager";
+import { isGameplayActive } from "../game/GameState";
 import type { Combatant } from "../combat/CombatSystem";
 
 export interface AnimalSpec {
@@ -288,6 +289,7 @@ export class Animal implements Combatant {
 
         this._staggerUntil = now + 320;
         this._windupUntil = 0; // interrupt any telegraphed bite
+        this._root.rotation.x = 0; // drop any rear-back tilt from a windup
 
         if (this._barRoot) {
             this._barRoot.setEnabled(true);
@@ -399,8 +401,11 @@ export class Animal implements Combatant {
             this._barRoot.setEnabled(false);
         }
 
+        // Freeze AI entirely while a menu/end screen is up (the render loop keeps
+        // running, so without this animals would keep biting during a pause).
+        if (!isGameplayActive()) return;
+
         const player = this._playerXZ();
-        const runEnded = document.body.classList.contains("run-ended");
 
         let distToPlayer = Infinity;
         if (player) {
@@ -420,7 +425,7 @@ export class Animal implements Combatant {
             this._state = "tamed";
         } else if (now < this._fleeUntil) {
             this._state = "flee";
-        } else if (this._spec.hostile && player && !runEnded && distToPlayer < this._aggroRange) {
+        } else if (this._spec.hostile && player && distToPlayer < this._aggroRange) {
             this._state = "chase";
         } else if (this._state === "chase" || this._state === "flee") {
             this._state = "wander";

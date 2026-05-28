@@ -93,6 +93,20 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     });
     assert(dmg.after < dmg.before, 'damagePlayer reduces player health');
 
+    // --- Damage is suppressed while a menu is open (world effectively pauses) ---
+    const paused = await page.evaluate(() => {
+        const esc = document.getElementById('escMenu');
+        const prev = esc.style.display;
+        esc.style.display = 'flex';
+        const stats = window.game.stats;
+        const before = stats.getData().health;
+        window.game.combat.damagePlayer(20, 'Tiger');
+        const after = stats.getData().health;
+        esc.style.display = prev;
+        return { before, after };
+    });
+    assert(paused.after === paused.before, 'no player damage while a menu is open');
+
     console.log('\nALL PASSED');
     await browser.close();
 })().catch(e => { console.error(e.message); process.exit(1); });

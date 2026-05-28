@@ -2,6 +2,7 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Scene } from "@babylonjs/core/scene";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { SoundManager } from "../game/SoundManager";
+import { isGameplayActive } from "../game/GameState";
 import { weaponFor, type WeaponStat } from "./Weapons";
 
 export interface Combatant {
@@ -18,7 +19,10 @@ export class CombatSystem {
     private _crosshair: HTMLElement | null;
     private _vignette: HTMLElement | null;
     private _shakeMag = 0;
-    private _shakeBaseRot: { x: number; y: number } | null = null;
+    // The shake we added to the camera last frame, so we can remove exactly that
+    // contribution without disturbing the player's own mouse-look input.
+    private _shakeOffX = 0;
+    private _shakeOffY = 0;
 
     constructor(scene: Scene, hud: any, stats: any) {
         this._scene = scene;
@@ -29,13 +33,33 @@ export class CombatSystem {
         this._scene.onBeforeRenderObservable.add(() => this._applyShake());
     }
 
-    /** Returns true if the click was consumed as a combat action (player is armed). */
+    public isArmed(): boolean {
+        return !!weaponFor(this._hud?.getActiveItem?.());
+    }
+
+    public weaponRange(): number {
+        return weaponFor(this._hud?.getActiveItem?.())?.range ?? 0;
+    }
+
+    /**
+     * Attempt a melee swing. Returns true when the click was consumed as combat:
+     * either a hit landed, or the player is clearly engaging a nearby enemy (a
+     * whiff just out of reach — which suppresses accidental taming/gathering).
+     * Returns false when armed but no enemy is in front, so the click falls
+     * through to normal gathering — holding a weapon never blocks interaction.
+     */
     public tryAttack(): boolean {
+        if (!isGameplayActive()) return false;
         const weapon = weaponFor(this._hud?.getActiveItem?.());
-        if (!weapon) return false; // not armed — let the interaction system handle the click
+        if (!weapon) return false;
+
+        const target = this._findTarget(weapon, weapon.range);
+        // Engaging an enemy slightly out of reach still counts as a combat click.
+        const engaged = target ?? this._findTarget(weapon, weapon.range + 2);
+        if (!engaged) return false; // no enemy in front — let interaction proceed
 
         const now = performance.now();
-        if (now < this._cooldownUntil) return true; // mid-swing: still a combat click, don't gather
+        if (now < this._cooldownUntil) return true; // mid-swing while engaged: don't gather/tame
         this._cooldownUntil = now + weapon.cooldownMs;
 
         this._stats?.useStamina?.(weapon.staminaCost);
@@ -43,7 +67,6 @@ export class CombatSystem {
         this._animateSwing();
         this._cameraPunch();
 
-        const target = this._findTarget(weapon);
         if (target) {
             const cam = this._scene.activeCamera;
             const from = cam ? cam.position.clone() : Vector3.Zero();
@@ -54,7 +77,7 @@ export class CombatSystem {
         return true;
     }
 
-    private _findTarget(weapon: WeaponStat): { mesh: AbstractMesh; combatant: Combatant } | null {
+    private _findTarget(weapon: WeaponStat, range: number): { mesh: AbstractMesh; combatant: Combatant } | null {
         const cam = this._scene.activeCamera;
         if (!cam) return null;
         const forward = cam.getForwardRay(1).direction.normalize();
@@ -66,7 +89,7 @@ export class CombatSystem {
             if (!c || !c.isAlive || c.isTamed) continue;
             const to = mesh.getAbsolutePosition().subtract(cam.position);
             const dist = to.length();
-            if (dist > weapon.range) continue;
+            if (dist > range) continue;
             const dot = to.normalize().dot(forward);
             if (dot < weapon.arcDot) continue;
             // Prefer the most centred target, then the closest.
@@ -81,7 +104,7 @@ export class CombatSystem {
 
     /** Called by hostile animals when they land a bite. */
     public damagePlayer(amount: number, sourceName: string): void {
-        if (document.body.classList.contains("run-ended")) return;
+        if (!isGameplayActive()) return;
         this._stats?.decreaseHealth?.(amount);
         SoundManager.instance?.play("playerHurt");
         this._flashVignette(amount);
@@ -118,24 +141,23 @@ export class CombatSystem {
 
     private _applyShake(): void {
         const cam = this._scene.activeCamera as any;
-        if (!cam || this._shakeMag < 0.0005) {
-            if (this._shakeBaseRot && cam?.rotation) {
-                cam.rotation.x = this._shakeBaseRot.x;
-                cam.rotation.y = this._shakeBaseRot.y;
-                this._shakeBaseRot = null;
-            }
+        if (!cam?.rotation) return;
+
+        // Undo only the shake we injected last frame, leaving the player's
+        // mouse-look (applied since then) intact.
+        cam.rotation.x -= this._shakeOffX;
+        cam.rotation.y -= this._shakeOffY;
+        this._shakeOffX = 0;
+        this._shakeOffY = 0;
+
+        if (this._shakeMag < 0.0005) {
             this._shakeMag = 0;
             return;
         }
-        if (!cam.rotation) return;
-        if (this._shakeBaseRot) {
-            // restore previous frame's offset before applying a new one
-            cam.rotation.x = this._shakeBaseRot.x;
-            cam.rotation.y = this._shakeBaseRot.y;
-        }
-        this._shakeBaseRot = { x: cam.rotation.x, y: cam.rotation.y };
-        cam.rotation.x += (Math.random() - 0.5) * this._shakeMag;
-        cam.rotation.y += (Math.random() - 0.5) * this._shakeMag;
+        this._shakeOffX = (Math.random() - 0.5) * this._shakeMag;
+        this._shakeOffY = (Math.random() - 0.5) * this._shakeMag;
+        cam.rotation.x += this._shakeOffX;
+        cam.rotation.y += this._shakeOffY;
         this._shakeMag *= 0.82;
     }
 }
