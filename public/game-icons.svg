@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <defs>
+    <style>
+      .glyph { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <!-- Resources -->
+  <symbol id="icon-wood" viewBox="0 0 24 24">
+    <g class="glyph"><ellipse cx="12" cy="14" rx="5" ry="3"/><path d="M9 14V8c0-1.5 1.3-3 3-3s3 1.5 3 3v6"/><path d="M10 8h4"/></g>
+  </symbol>
+  <symbol id="icon-stone" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M7 16l2-7h6l2 7H7z"/><path d="M9 9l1-3h4l1 3"/></g>
+  </symbol>
+  <symbol id="icon-fiber" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M12 20V6"/><path d="M8 10c2-3 4-3 4-3s2 0 4 3"/><path d="M8 14c2 3 4 3 4 3s2 0 4-3"/></g>
+  </symbol>
+  <symbol id="icon-leaf" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M12 20c5-4 7-9 7-14a7 7 0 0 0-7 7 7 7 0 0 0-7-7c0 5 2 10 7 14z"/><path d="M12 20V9"/></g>
+  </symbol>
+  <symbol id="icon-flint" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M8 17l4-11 4 11H8z"/><path d="M10 12h4"/><path d="M14 7l3-2M10 7L7 5"/></g>
+  </symbol>
+  <symbol id="icon-scrap" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M7 14l3-8h4l3 8"/><path d="M9 10h6"/><circle cx="12" cy="16" r="1.2" fill="currentColor" stroke="none"/></g>
+  </symbol>
+  <symbol id="icon-bone" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M8 10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM16 19a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/><path d="M9.5 8.5l5 6"/></g>
+  </symbol>
+  <symbol id="icon-rope" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M9 6c0 2 1.5 3 3 3s3-1 3-3-1.5-3-3-3-3 1-3 3z"/><path d="M9 18c0-2 1.5-3 3-3s3 1 3 3-1.5 3-3 3-3-1-3-3z"/><path d="M12 9v6"/></g>
+  </symbol>
+  <symbol id="icon-cloth" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M7 8h10l-1 10H8L7 8z"/><path d="M9 8V6h6v2"/></g>
+  </symbol>
+
+  <!-- Food -->
+  <symbol id="icon-berry" viewBox="0 0 24 24">
+    <g class="glyph"><circle cx="9" cy="14" r="2.2"/><circle cx="15" cy="14" r="2.2"/><circle cx="12" cy="11" r="2.2"/><path d="M12 8V5"/></g>
+  </symbol>
+  <symbol id="icon-coconut" viewBox="0 0 24 24">
+    <g class="glyph"><circle cx="12" cy="13" r="5"/><path d="M10 8c0-2 1-3 2-3s2 1 2 3"/><path d="M9 13h6"/></g>
+  </symbol>
+  <symbol id="icon-banana" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M9 18c-4-1-5-6-3-10 2-4 6-5 8-3 2 2 1 5-1 7s-3 4-4 6z"/></g>
+  </symbol>
+  <symbol id="icon-meat" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M8 16c-2-3-1-7 2-9 3-2 7-1 8 2 1 3-2 6-5 7-3 1-6-1-5 0z"/><circle cx="15" cy="9" r="1.5" fill="currentColor" stroke="none"/></g>
+  </symbol>
+  <symbol id="icon-fish" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M4 12c3-2 7-2 10 0 3 2 7 2 10 0"/><path d="M4 12l-2-2v4l2-2z"/><circle cx="15" cy="11" r="1" fill="currentColor" stroke="none"/></g>
+  </symbol>
+  <symbol id="icon-cookedFish" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M4 12c3-2 7-2 10 0 3 2 7 2 10 0"/><path d="M4 12l-2-2v4l2-2z"/><path d="M8 7l2 2M16 7l-2 2" opacity=".8"/></g>
+  </symbol>
+  <symbol id="icon-driedFish" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M5 13c2-1 5-1 7 0 2 1 5 1 7 0"/><path d="M5 13l-1.5-1.5v3L5 13z"/><path d="M6 10h8M6 16h8"/></g>
+  </symbol>
+  <symbol id="icon-berryJam" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M9 9h6v10H9z"/><path d="M8 9h8"/><path d="M10 6h4v3h-4z"/><circle cx="12" cy="14" r="2" fill="currentColor" stroke="none"/></g>
+  </symbol>
+
+  <!-- Tools -->
+  <symbol id="icon-stoneAxe" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M6 20l8-12"/><path d="M12 6l5-2 1 4-5 2z"/></g>
+  </symbol>
+  <symbol id="icon-stonePickaxe" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M6 20l7-11"/><path d="M11 7l6-3 2 4-6 3z"/><path d="M15 4l3-1"/></g>
+  </symbol>
+  <symbol id="icon-woodenSpear" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M5 19L17 5"/><path d="M15 5l3-2 2 3-3 2z"/></g>
+  </symbol>
+  <symbol id="icon-boneClub" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M6 18l10-8"/><circle cx="17" cy="7" r="2.5"/><circle cx="19.5" cy="4.5" r="1.8"/></g>
+  </symbol>
+  <symbol id="icon-fishingRod" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M5 19c6-8 10-12 14-14"/><path d="M17 6c1 0 2 1 2 2"/><path d="M19 8v4"/></g>
+  </symbol>
+
+  <!-- Structures -->
+  <symbol id="icon-campfire" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M7 18h10"/><path d="M8 18l2-3h4l2 3"/><path d="M12 15c0-3 2-4 2-6s-1-3-2-3-2 1-2 3 2 3 2 6z"/></g>
+  </symbol>
+  <symbol id="icon-shelter" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M5 17l7-9 7 9"/><path d="M8 17v3h8v-3"/></g>
+  </symbol>
+  <symbol id="icon-workbench" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M5 11h14v2H5z"/><path d="M7 13v5M17 13v5"/><path d="M9 8h6l1 3H8l1-3z"/></g>
+  </symbol>
+  <symbol id="icon-dryingRack" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M6 18h12"/><path d="M8 18V8M16 18V8"/><path d="M8 10h8M8 14h8"/></g>
+  </symbol>
+
+  <!-- Consumables / progress -->
+  <symbol id="icon-bandage" viewBox="0 0 24 24">
+    <g class="glyph"><rect x="7" y="9" width="10" height="6" rx="1"/><path d="M12 9v6M9 12h6"/></g>
+  </symbol>
+  <symbol id="icon-raftProgress" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M5 15h14l-2 3H7l-2-3z"/><path d="M8 15V9l4-2 4 2v6"/><path d="M16 7l2-3"/></g>
+  </symbol>
+
+  <!-- Fallback -->
+  <symbol id="icon-unknown" viewBox="0 0 24 24">
+    <g class="glyph"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 9h6v6H9z"/></g>
+  </symbol>
+
+  <!-- Stat HUD -->
+  <symbol id="icon-stat-health" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M12 20s-6-4.2-6-9a3.5 3.5 0 0 1 6-2 3.5 3.5 0 0 1 6 2c0 4.8-6 9-6 9z"/></g>
+  </symbol>
+  <symbol id="icon-stat-hunger" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M6 14c0-4 2.5-7 6-7s6 3 6 7"/><path d="M8 14h8"/><path d="M9 11h6"/></g>
+  </symbol>
+  <symbol id="icon-stat-thirst" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M12 4c-3 4-5 6.5-5 9a5 5 0 0 0 10 0c0-2.5-2-5-5-9z"/></g>
+  </symbol>
+  <symbol id="icon-stat-stamina" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M13 3L7 13h5l-1 8 8-12h-5l1-6z"/></g>
+  </symbol>
+  <symbol id="icon-stat-warmth" viewBox="0 0 24 24">
+    <g class="glyph"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4l1.4-1.4M17 7l1.4-1.4"/></g>
+  </symbol>
+  <symbol id="icon-stat-cold" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M12 3v18"/><path d="M8 7l4-4 4 4M8 17l4 4 4-4"/><path d="M5 12h14"/></g>
+  </symbol>
+
+  <!-- Mobile / UI controls -->
+  <symbol id="icon-ui-pause" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M9 7v10M15 7v10"/></g>
+  </symbol>
+  <symbol id="icon-ui-inventory" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M7 8h10l1 11H6L7 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></g>
+  </symbol>
+  <symbol id="icon-ui-jump" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M12 5v10"/><path d="M8 9l4-4 4 4"/></g>
+  </symbol>
+  <symbol id="icon-ui-interact" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M8 11V8a4 4 0 0 1 8 0v3"/><path d="M7 11h10v7a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-7z"/></g>
+  </symbol>
+  <symbol id="icon-ui-sprint" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M13 3L7 13h5l-1 8 8-12h-5l1-6z"/></g>
+  </symbol>
+  <symbol id="icon-ui-crouch" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M8 14h8"/><path d="M12 14V8"/><path d="M8 18h8"/></g>
+  </symbol>
+  <symbol id="icon-ui-fish" viewBox="0 0 24 24">
+    <g class="glyph"><path d="M5 19c6-8 10-12 14-14"/><path d="M17 6c1 0 2 1 2 2"/><path d="M4 12c3-2 7-2 10 0"/></g>
+  </symbol>
+</svg>

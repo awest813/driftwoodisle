@@ -9,6 +9,7 @@ import { SoundManager } from "../game/SoundManager";
 import { ITEMS, CATEGORY_LABELS, CATEGORY_ORDER, itemDef } from "../inventory/ItemRegistry";
 import type { ItemCategory } from "../inventory/ItemRegistry";
 import { consumeItem } from "../inventory/Consume";
+import { itemIconHtml } from "../ui/ItemIcon";
 
 export class CraftingSystem {
     private _inventory: Inventory;
@@ -18,15 +19,6 @@ export class CraftingSystem {
     private _menuElement: HTMLElement | null;
     private _recipeListElement: HTMLElement | null;
     private _isOpen: boolean = false;
-    private _icons: Record<string, string> = {
-        wood: '🪵', stone: '🪨', fiber: '🌿', leaf: '🍃',
-        coconut: '🥥', berry: '🫐', fish: '🐟', rope: '🪢',
-        cloth: '👕', scrap: '🔩', flint: '🪨',
-        stoneAxe: '🪓', stonePickaxe: '⛏️', woodenSpear: '🔱', fishingRod: '🎣',
-        campfire: '🔥', shelter: '⛺', workbench: '🛠️', dryingRack: '🪤',
-        cookedFish: '🍣', driedFish: '🐠', berryJam: '🍯', bandage: '🩹',
-        raftProgress: '⛵'
-    };
     private static readonly STATION_RANGE = 4;
     private static readonly STATION_LABEL: Record<StationType, string> = {
         workbench: "Workbench",
@@ -167,7 +159,7 @@ export class CraftingSystem {
             const chips = Object.entries(recipe.requires).map(([type, count]) => {
                 const need = count || 0;
                 const have = this._inventory.getQuantity(type as ResourceType);
-                const icon = this._icons[type] || itemDef(type)?.icon || type;
+                const icon = itemIconHtml(type, "item-icon item-icon--chip");
                 const ok = have >= need;
                 const name = itemDef(type)?.name || type;
                 return `<span class="ingredient-chip ${ok ? "ok" : "lacking"}" title="${name}">`
@@ -178,16 +170,16 @@ export class CraftingSystem {
 
             const stationChip = recipe.station
                 ? `<span class="ingredient-chip ${stationOk ? "ok" : "lacking"}" title="Required station">`
-                    + `<span class="chip-icon">${this._icons[recipe.station] || ''}</span>`
+                    + `<span class="chip-icon">${itemIconHtml(recipe.station, "item-icon item-icon--chip")}</span>`
                     + `<span class="chip-count">${CraftingSystem.STATION_LABEL[recipe.station]}</span>`
                     + `</span>`
                 : "";
 
-            const resultIcon = this._icons[recipe.creates] || itemDef(recipe.creates)?.icon || '';
+            const resultIcon = itemIconHtml(recipe.creates, "item-icon item-icon--recipe");
 
             itemEl.innerHTML = `
                 <div class="recipe-info">
-                    <h3>${resultIcon} ${recipe.name}</h3>
+                    <h3><span class="recipe-icon">${resultIcon}</span> ${recipe.name}</h3>
                     <div class="recipe-ingredients">${chips}${stationChip}</div>
                 </div>
                 <button class="craft-btn" ${canCraft ? "" : "disabled"}>${btnText}</button>
@@ -248,7 +240,7 @@ export class CraftingSystem {
                         : def.name;
                     itemEl.innerHTML = `
                         <div class="inv-item-row">
-                            <span class="inv-icon">${def.icon}</span>
+                            <span class="inv-icon">${itemIconHtml(type, "item-icon item-icon--inv")}</span>
                             <span class="inv-name">${def.name}</span>
                             <span class="inv-qty">x${count}</span>
                         </div>

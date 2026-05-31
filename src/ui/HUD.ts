@@ -3,6 +3,7 @@ import { Inventory } from "../inventory/Inventory";
 import { ITEMS, HOTBAR_ORDER, itemDef } from "../inventory/ItemRegistry";
 import type { ResourceType } from "../inventory/ItemTypes";
 import { consumeItem } from "../inventory/Consume";
+import { itemIconHtml, statIconHtml } from "./ItemIcon";
 
 const HOTBAR_SIZE = 9;
 
@@ -52,7 +53,7 @@ export class HUD {
 
             const wIcon = document.getElementById("warmthIcon");
             if (wIcon) {
-                wIcon.innerText = stats.warmth < 30 ? "❄️" : "☀️";
+                wIcon.innerHTML = statIconHtml(stats.warmth < 30 ? "cold" : "warmth", "item-icon stat-glyph");
             }
             
             const tDisp = document.getElementById("tempDisplay");
@@ -115,6 +116,7 @@ export class HUD {
 
         const slots = document.querySelectorAll('.hotbar-slot');
         slots.forEach((slot, i) => {
+            slot.querySelector('.slot-icon')?.remove();
             Array.from(slot.childNodes).forEach(child => {
                 if (child.nodeType === Node.TEXT_NODE) child.remove();
             });
@@ -127,7 +129,10 @@ export class HUD {
             if (!type) return;
             const def = ITEMS[type];
             const count = items[type] || 0;
-            slot.appendChild(document.createTextNode(def?.icon || '📦'));
+            const iconWrap = document.createElement('span');
+            iconWrap.className = 'slot-icon';
+            iconWrap.innerHTML = itemIconHtml(type, 'item-icon item-icon--hotbar');
+            slot.insertBefore(iconWrap, qty);
             if (qty && count > 1) qty.textContent = count.toString();
             (slot as HTMLElement).setAttribute('data-item', type);
             (slot as HTMLElement).setAttribute('title', `${def?.name || type} (${count})`);

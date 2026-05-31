@@ -718,8 +718,13 @@ html, body {
 }
 
 .stat-icon {
-    font-size: 1.2rem;
     width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--leather);
 }
 
 .stat-val {
@@ -866,14 +871,62 @@ html, body {
 .icon {
     width: 32px;
     height: 32px;
-    background-image: url('./assets/images/icons.png');
-    background-size: 128px 32px; /* Assume 4 icons in a row */
+    display: inline-block;
 }
 
-.wood-icon { background-position: 0px 0; }
-.stone-icon { background-position: -32px 0; }
-.fiber-icon { background-position: -64px 0; }
-.berry-icon { background-position: -96px 0; }
+/* Shared SVG sprite icons (see /public/game-icons.svg) */
+.item-icon,
+.ui-icon {
+    display: block;
+    width: 1.35em;
+    height: 1.35em;
+    color: var(--leather);
+    flex-shrink: 0;
+}
+
+.item-icon--hotbar { width: 28px; height: 28px; }
+.item-icon--inv { width: 28px; height: 28px; }
+.item-icon--chip { width: 18px; height: 18px; }
+.item-icon--recipe { width: 22px; height: 22px; display: inline-block; vertical-align: -4px; }
+
+.stat-glyph { width: 20px; height: 20px; }
+
+.ui-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--parchment);
+}
+
+.mc-action-btn .ui-icon {
+    width: 100%;
+    height: 100%;
+    max-width: 28px;
+    max-height: 28px;
+}
+
+.mc-action-btn.large .ui-icon { max-width: 36px; max-height: 36px; }
+.mc-action-btn.medium .ui-icon { max-width: 30px; max-height: 30px; }
+
+.hotbar-slot .slot-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.recipe-info h3 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.recipe-icon {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
 
 #craftingMenu {
     display: none;
@@ -987,7 +1040,10 @@ html, body {
 }
 
 .ingredient-chip .chip-icon {
-    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 .ingredient-chip .chip-count {
@@ -1371,9 +1427,12 @@ body.run-ended #mobileControls {
 }
 
 .inv-icon {
-    font-size: 1.6rem;
     width: 32px;
-    text-align: center;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .inv-name {
@@ -1746,6 +1805,11 @@ body.mobile-active #interactionPrompt[style*="opacity: 1"] {
     -webkit-tap-highlight-color: transparent;
     transition: transform 0.08s ease, background 0.12s ease;
     padding: 0;
+}
+
+.mc-icon-btn .ui-icon {
+    width: 22px;
+    height: 22px;
 }
 
 .mc-icon-btn.pressed,
