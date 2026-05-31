@@ -5,7 +5,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <meta name="theme-color" content="#3a2818" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Driftwood Isle</title>
     <link rel="stylesheet" href="./src/style.css" />
   </head>
@@ -153,27 +153,27 @@
 
         <div class="stats-container">
             <div class="stat-row">
-                <span class="stat-icon">❤️</span>
+                <span class="stat-icon"><svg class="item-icon stat-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-stat-health"></use></svg></span>
                 <div class="stat-bar-bg"><div id="healthBar" class="stat-bar health"></div></div>
                 <span id="healthVal" class="stat-val">100</span>
             </div>
             <div class="stat-row">
-                <span class="stat-icon">🍖</span>
+                <span class="stat-icon"><svg class="item-icon stat-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-stat-hunger"></use></svg></span>
                 <div class="stat-bar-bg"><div id="hungerBar" class="stat-bar hunger"></div></div>
                 <span id="hungerVal" class="stat-val">100</span>
             </div>
             <div class="stat-row">
-                <span class="stat-icon">💧</span>
+                <span class="stat-icon"><svg class="item-icon stat-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-stat-thirst"></use></svg></span>
                 <div class="stat-bar-bg"><div id="thirstBar" class="stat-bar thirst"></div></div>
                 <span id="thirstVal" class="stat-val">100</span>
             </div>
             <div class="stat-row">
-                <span class="stat-icon">⚡</span>
+                <span class="stat-icon"><svg class="item-icon stat-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-stat-stamina"></use></svg></span>
                 <div class="stat-bar-bg"><div id="staminaBar" class="stat-bar stamina"></div></div>
                 <span id="staminaVal" class="stat-val">100</span>
             </div>
             <div class="stat-row">
-                <span class="stat-icon" id="warmthIcon">☀️</span>
+                <span class="stat-icon" id="warmthIcon"><svg class="item-icon stat-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-stat-warmth"></use></svg></span>
                 <div class="stat-bar-bg"><div id="warmthBar" class="stat-bar warmth"></div></div>
                 <span id="warmthVal" class="stat-val">100</span>
             </div>
@@ -228,8 +228,8 @@
 
     <div id="mobileControls" aria-hidden="true">
         <div id="mc-top">
-            <button id="mc-btn-pause" class="mc-icon-btn" type="button" aria-label="Pause">⏸</button>
-            <button id="mc-btn-inventory" class="mc-icon-btn" type="button" aria-label="Inventory">🎒</button>
+            <button id="mc-btn-pause" class="mc-icon-btn" type="button" aria-label="Pause"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-ui-pause"></use></svg></button>
+            <button id="mc-btn-inventory" class="mc-icon-btn" type="button" aria-label="Inventory"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-ui-inventory"></use></svg></button>
         </div>
         <div id="mc-lookpad" aria-label="Look pad"></div>
         <div id="mc-joystick-zone" aria-hidden="true"></div>
@@ -237,11 +237,11 @@
             <div id="mc-joystick-knob"></div>
         </div>
         <div id="mc-action-cluster">
-            <button id="mc-btn-fish" class="mc-action-btn small" type="button" aria-label="Fish">🎣</button>
-            <button id="mc-btn-sprint" class="mc-action-btn small toggle" type="button" aria-label="Sprint">⚡</button>
-            <button id="mc-btn-crouch" class="mc-action-btn small toggle" type="button" aria-label="Crouch">⬇</button>
-            <button id="mc-btn-jump" class="mc-action-btn medium" type="button" aria-label="Jump">⤴</button>
-            <button id="mc-btn-interact" class="mc-action-btn large" type="button" aria-label="Interact">✊</button>
+            <button id="mc-btn-fish" class="mc-action-btn small" type="button" aria-label="Fish"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-ui-fish"></use></svg></button>
+            <button id="mc-btn-sprint" class="mc-action-btn small toggle" type="button" aria-label="Sprint"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-ui-sprint"></use></svg></button>
+            <button id="mc-btn-crouch" class="mc-action-btn small toggle" type="button" aria-label="Crouch"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-ui-crouch"></use></svg></button>
+            <button id="mc-btn-jump" class="mc-action-btn medium" type="button" aria-label="Jump"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-ui-jump"></use></svg></button>
+            <button id="mc-btn-interact" class="mc-action-btn large" type="button" aria-label="Interact"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-ui-interact"></use></svg></button>
         </div>
     </div>
 
