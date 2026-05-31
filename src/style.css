@@ -14,6 +14,7 @@
     left: 0;
     width: 100%;
     height: 100%;
+    height: 100dvh;
     background:
         radial-gradient(ellipse at 50% 120%, rgba(20,40,60,0.55), transparent 60%),
         linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.55)),
@@ -435,7 +436,7 @@
 }
 
 #settingsMenu {
-    max-height: 88vh;
+    max-height: 88dvh;
     overflow-y: auto;
 }
 
@@ -467,10 +468,16 @@
     margin-top: 12px;
 }
 
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
 html, body {
     overflow: hidden;
     width: 100%;
     height: 100%;
+    height: 100dvh;
     margin: 0;
     padding: 0;
     background-color: #000;
@@ -479,6 +486,7 @@ html, body {
 #renderCanvas {
     width: 100%;
     height: 100%;
+    height: 100dvh;
     touch-action: none;
     outline: none;
 }
@@ -887,7 +895,7 @@ html, body {
 #craftingMenu .inventory-page {
     width: min(92vw, 980px);
     max-width: 980px;
-    height: min(86vh, 720px);
+    height: min(86dvh, 720px);
     padding: 42px;
     display: flex;
     flex-direction: column;
@@ -1046,6 +1054,7 @@ html, body {
     left: 0;
     width: 100%;
     height: 100%;
+    height: 100dvh;
     background: rgba(0,0,0,0.7);
     display: none;
     justify-content: center;
@@ -1209,10 +1218,48 @@ body.run-ended #mobileControls {
 }
 
 @media (max-width: 760px) {
+    .overlay {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        align-items: flex-start;
+        padding: calc(16px + env(safe-area-inset-top, 0px)) 0 calc(16px + env(safe-area-inset-bottom, 0px));
+    }
+
     .overlay h1 { font-size: 2rem; letter-spacing: 2px; }
     .overlay p { font-size: 1rem; margin-bottom: 24px; }
     .overlay-content { padding: 32px 24px; border-width: 10px; }
     .overlay button { padding: 12px 20px; font-size: 1rem; letter-spacing: 1px; }
+
+    .pause-page {
+        max-width: min(420px, 94vw);
+        padding-top: 28px;
+        padding-bottom: 28px;
+    }
+
+    .pause-title {
+        font-size: 1.45rem;
+        letter-spacing: 4px;
+        padding-bottom: 8px;
+    }
+
+    .pause-tagline {
+        font-size: 0.85rem;
+        margin-top: 8px;
+    }
+
+    .pause-buttons button,
+    .pause-page .back-btn {
+        width: min(250px, 100%);
+        padding: 10px 24px;
+        font-size: 1rem;
+    }
+
+    #interactionPrompt {
+        min-width: 0;
+        max-width: calc(100vw - 120px);
+        font-size: 0.85rem;
+        padding: 8px 14px;
+    }
 }
 
 .minecraft-hotbar {
@@ -1365,7 +1412,9 @@ body.run-ended #mobileControls {
     #mainMenu {
         align-items: flex-start;
         overflow-y: auto;
+        overscroll-behavior: contain;
         padding: 18px 0;
+        padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
     }
 
     .journal-page {
@@ -1386,9 +1435,36 @@ body.run-ended #mobileControls {
         flex-direction: column;
     }
 
+    #controlsMenu .journal-page,
+    #settingsMenu,
+    #creditsMenu {
+        padding: 24px 18px;
+    }
+
     .controls-grid {
         grid-template-columns: 1fr;
-        gap: 16px;
+        gap: 12px;
+        margin-top: 8px;
+    }
+
+    .controls-list {
+        gap: 5px;
+    }
+
+    .controls-list li {
+        font-size: 0.82rem;
+        gap: 8px;
+    }
+
+    .settings-subheader {
+        margin: 14px 0 8px;
+        font-size: 0.9rem;
+        letter-spacing: 2px;
+    }
+
+    .settings-hint {
+        font-size: 0.82rem;
+        margin-bottom: 8px;
     }
 
     .setting-row {
@@ -1407,6 +1483,20 @@ body.run-ended #mobileControls {
         justify-self: center;
     }
 
+    .loading-page {
+        min-width: 0;
+        padding: 28px 20px;
+    }
+
+    .pause-buttons button,
+    .back-btn {
+        width: min(250px, 100%);
+    }
+
+    #hud {
+        padding: 12px;
+    }
+
     #compass {
         top: 66px;
         width: min(300px, calc(100vw - 40px));
@@ -1417,11 +1507,16 @@ body.run-ended #mobileControls {
         right: auto;
         transform: translateX(-50%);
         text-align: center;
+        min-width: 0;
+        max-width: calc(100vw - 32px);
+        font-size: 0.92rem;
+        padding: 8px 10px;
     }
 
     #fpsCounter {
         top: 112px;
         right: 12px;
+        font-size: 0.75rem;
     }
 
     .stats-container {
@@ -1429,9 +1524,24 @@ body.run-ended #mobileControls {
         margin-top: 112px;
     }
 
+    #notifications {
+        top: auto;
+        bottom: calc(130px + env(safe-area-inset-bottom, 0px));
+        right: 12px;
+        left: 12px;
+        align-items: stretch;
+    }
+
+    .notification {
+        min-width: 0;
+        max-width: none;
+        font-size: 0.85rem;
+        padding: 8px 12px 8px 10px;
+    }
+
     #craftingMenu .inventory-page {
         width: 94vw;
-        height: min(92vh, 800px);
+        height: min(92dvh, 800px);
         padding: 20px 16px;
     }
 
@@ -1491,9 +1601,73 @@ body.mobile-active .minecraft-hotbar {
     display: none !important;
 }
 
+body.mobile-active #hud {
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 12px;
+}
+
+body.mobile-active #timeTempUI {
+    top: calc(64px + env(safe-area-inset-top, 0px));
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    min-width: 0;
+    width: max-content;
+    max-width: calc(100vw - 110px);
+    font-size: 0.78rem;
+    padding: 5px 8px;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+body.mobile-active #compass {
+    top: calc(102px + env(safe-area-inset-top, 0px));
+    width: min(220px, calc(100vw - 110px));
+    height: 30px;
+    font-size: 0.78rem;
+    letter-spacing: 1px;
+}
+
+body.mobile-active .stats-container {
+    width: min(210px, calc(50vw - 16px));
+    padding: 8px 10px;
+    margin-top: calc(142px + env(safe-area-inset-top, 0px));
+}
+
+body.mobile-active .stat-row {
+    gap: 8px;
+    margin-bottom: 5px;
+}
+
+body.mobile-active .stat-icon {
+    font-size: 1rem;
+    width: 18px;
+}
+
+body.mobile-active .stat-val {
+    font-size: 0.78rem;
+    width: 32px;
+}
+
+body.mobile-active .stat-bar-bg {
+    height: 6px;
+}
+
 body.mobile-active #fpsCounter {
-    /* Push the FPS counter out of the way of the inventory button */
-    top: 70px;
+    display: none;
+}
+
+body.mobile-active #interactionPrompt {
+    top: auto;
+    bottom: calc(max(260px, 32vh + 60px) + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    max-width: min(240px, calc(100vw - 140px));
+    text-align: center;
+}
+
+body.mobile-active #interactionPrompt[style*="opacity: 1"] {
+    transform: translateX(-50%);
 }
 
 #mobileControls {
@@ -1763,23 +1937,23 @@ body.mobile-active #fpsCounter {
     #mc-joystick {
         width: 134px;
         height: 134px;
-        bottom: 22px;
-        left: 22px;
+        bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+        left: calc(22px + env(safe-area-inset-left, 0px));
     }
     #mobileControls.left-handed #mc-joystick {
-        right: 22px;
+        right: calc(22px + env(safe-area-inset-right, 0px));
     }
     #mc-joystick-knob {
         width: 58px;
         height: 58px;
     }
     #mc-action-cluster {
-        bottom: 22px;
-        right: 22px;
+        bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+        right: calc(22px + env(safe-area-inset-right, 0px));
         gap: 9px;
     }
     #mobileControls.left-handed #mc-action-cluster {
-        left: 22px;
+        left: calc(22px + env(safe-area-inset-left, 0px));
     }
     .mc-action-btn.large {
         width: 82px;
@@ -1799,26 +1973,63 @@ body.mobile-active #fpsCounter {
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
+    #mainMenu {
+        padding: 10px 0;
+    }
+
+    .journal-page {
+        padding: 20px 18px;
+        border-width: 8px;
+    }
+
+    #menuContent h1 {
+        font-size: 1.8rem;
+    }
+
+    .hero-seal {
+        top: -28px;
+        width: 52px;
+        height: 52px;
+    }
+
+    .hero-tagline {
+        letter-spacing: 3px;
+        font-size: 0.75rem;
+    }
+
+    .hero-blurb {
+        margin-top: 12px;
+        font-size: 0.82rem;
+    }
+
+    .menu-btn {
+        padding: 10px 18px;
+    }
+
+    .menu-btn .btn-label {
+        font-size: 1rem;
+    }
+
     #mc-joystick {
         width: 112px;
         height: 112px;
-        bottom: 14px;
-        left: 14px;
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+        left: calc(14px + env(safe-area-inset-left, 0px));
     }
     #mobileControls.left-handed #mc-joystick {
-        right: 14px;
+        right: calc(14px + env(safe-area-inset-right, 0px));
     }
     #mc-joystick-knob {
         width: 50px;
         height: 50px;
     }
     #mc-action-cluster {
-        bottom: 14px;
-        right: 14px;
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+        right: calc(14px + env(safe-area-inset-right, 0px));
         gap: 8px;
     }
     #mobileControls.left-handed #mc-action-cluster {
-        left: 14px;
+        left: calc(14px + env(safe-area-inset-left, 0px));
     }
     .mc-action-btn.large {
         width: 72px;
@@ -1838,5 +2049,84 @@ body.mobile-active #fpsCounter {
     #mc-lookpad::after { top: 50px; }
     #mc-top { top: 8px; left: 8px; right: 8px; }
     .mc-icon-btn { width: 44px; height: 44px; font-size: 1.05rem; }
+
+    body.mobile-active #timeTempUI {
+        top: calc(52px + env(safe-area-inset-top, 0px));
+        font-size: 0.72rem;
+        max-width: calc(100vw - 280px);
+    }
+
+    body.mobile-active #compass {
+        top: calc(86px + env(safe-area-inset-top, 0px));
+        width: min(180px, calc(100vw - 280px));
+        height: 26px;
+        font-size: 0.72rem;
+    }
+
+    body.mobile-active .stats-container {
+        margin-top: calc(58px + env(safe-area-inset-top, 0px));
+        width: min(180px, 34vw);
+        padding: 6px 8px;
+    }
+
+    body.mobile-active .stat-row {
+        gap: 6px;
+        margin-bottom: 4px;
+    }
+
+    body.mobile-active .stat-icon {
+        font-size: 0.9rem;
+        width: 16px;
+    }
+
+    body.mobile-active .stat-val {
+        font-size: 0.72rem;
+        width: 28px;
+    }
+
+    body.mobile-active .stat-bar-bg {
+        height: 5px;
+    }
+
+    body.mobile-active #interactionPrompt {
+        bottom: calc(max(190px, 28vh + 40px) + env(safe-area-inset-bottom, 0px));
+        max-width: min(200px, calc(100vw - 280px));
+        font-size: 0.78rem;
+    }
+
+    body.mobile-active #notifications {
+        bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+    }
 }
 
+
+
+@media (max-width: 360px) and (max-height: 620px) {
+    body.mobile-active .stats-container {
+        width: min(148px, 46vw);
+        padding: 5px 7px;
+    }
+
+    body.mobile-active .stat-row {
+        gap: 6px;
+        margin-bottom: 3px;
+    }
+
+    body.mobile-active .stat-icon {
+        font-size: 0.85rem;
+        width: 14px;
+    }
+
+    body.mobile-active .stat-val {
+        font-size: 0.7rem;
+        width: 28px;
+    }
+
+    body.mobile-active .stat-bar-bg {
+        height: 5px;
+    }
+
+    body.mobile-active #interactionPrompt {
+        bottom: calc(245px + env(safe-area-inset-bottom, 0px));
+    }
+}
