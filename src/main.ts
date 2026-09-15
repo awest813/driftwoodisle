@@ -3,17 +3,22 @@ import './style.css'
 // Initialize the game
 window.addEventListener('DOMContentLoaded', async () => {
     const { Game } = await import('./game/Game');
-    const game = new Game('renderCanvas');
+    new Game('renderCanvas');
 
-    // For debugging
-    (window as any).game = game;
-
-    // Add FPS counter to UI
+    // Lightweight FPS readout, refreshed twice a second. Stays blank until the
+    // engine has real frames to report so it never shows a stale "FPS: 0".
     const fpsDiv = document.createElement('div');
     fpsDiv.id = 'fpsCounter';
     document.body.appendChild(fpsDiv);
 
-    game.scene.onAfterRenderObservable.add(() => {
-        fpsDiv.innerText = `FPS: ${game.engine.getFps().toFixed()}`;
-    });
+    let lastFpsText = '';
+    window.setInterval(() => {
+        const raw = (window as any).game?.engine?.getFps?.() ?? 0;
+        const fps = Number.isFinite(raw) ? Math.round(raw) : 0;
+        const text = fps > 0 ? `FPS: ${fps}` : '';
+        if (text !== lastFpsText) {
+            lastFpsText = text;
+            fpsDiv.innerText = text;
+        }
+    }, 500);
 });

@@ -6,6 +6,7 @@ import type { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { ResourceType } from "../inventory/ItemTypes";
 import type { HUD } from "../ui/HUD";
+import type { BuildingSystem } from "../building/BuildingSystem";
 
 export interface SaveData {
     inventory: Record<ResourceType, number>;
@@ -17,6 +18,10 @@ export interface SaveData {
     worldSeed?: number;
     collectedNodes?: string[];
     hotbarBindings?: (ResourceType | null)[];
+    structures?: {
+        stations?: { type: string; x: number; y: number; z: number; ry: number }[];
+        blueprints?: { type: string; x: number; y: number; z: number; ry: number; remaining: Record<string, number> }[];
+    };
 }
 
 export class SaveSystem {
@@ -49,7 +54,8 @@ export class SaveSystem {
         stats: PlayerStats,
         dayNight: DayNightCycle,
         camera: FreeCamera,
-        hud?: HUD
+        hud?: HUD,
+        buildingSystem?: BuildingSystem
     ): void {
         const data: SaveData = {
             inventory: inventory.getData(),
@@ -68,11 +74,11 @@ export class SaveSystem {
             },
             worldSeed: this._worldSeed ?? undefined,
             collectedNodes: Array.from(this._collected),
-            hotbarBindings: hud?.getHotbarBindings()
+            hotbarBindings: hud?.getHotbarBindings(),
+            structures: buildingSystem?.serialize()
         };
 
         localStorage.setItem(this.SAVE_KEY, JSON.stringify(data));
-        console.log("Game Saved");
     }
 
     public static load(
@@ -80,7 +86,8 @@ export class SaveSystem {
         stats: PlayerStats,
         dayNight: DayNightCycle,
         camera: FreeCamera,
-        hud?: HUD
+        hud?: HUD,
+        buildingSystem?: BuildingSystem
     ): boolean {
         const rawData = localStorage.getItem(this.SAVE_KEY);
         if (!rawData) return false;
@@ -95,6 +102,7 @@ export class SaveSystem {
             if (typeof data.worldSeed === "number") this._worldSeed = data.worldSeed >>> 0;
             if (Array.isArray(data.collectedNodes)) this._collected = new Set(data.collectedNodes);
             if (hud && Array.isArray(data.hotbarBindings)) hud.setHotbarBindings(data.hotbarBindings);
+            buildingSystem?.deserialize(data.structures);
             
             const isFiniteVec = (v: { x: number; y: number; z: number }) =>
                 isFinite(v.x) && isFinite(v.y) && isFinite(v.z);
@@ -114,7 +122,6 @@ export class SaveSystem {
                 );
             }
 
-            console.log("Game Loaded");
             return true;
         } catch (e) {
             console.error("Failed to load game", e);

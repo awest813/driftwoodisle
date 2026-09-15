@@ -4,6 +4,8 @@
 // Babylon render loop keeps running.
 export function isGameplayActive(): boolean {
     if (document.body.classList.contains("run-ended")) return false;
+    const loading = document.getElementById("loadingScreen");
+    if (loading && loading.style.display === "flex") return false;
     const esc = document.getElementById("escMenu");
     if (esc && esc.style.display === "flex") return false;
     const crafting = document.getElementById("craftingMenu");

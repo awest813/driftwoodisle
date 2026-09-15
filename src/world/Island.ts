@@ -2,17 +2,20 @@ import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
+import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import { ProceduralTextures } from "./ProceduralTextures";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
+import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { ParticleSystem } from "@babylonjs/core/Particles/particleSystem";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Interactable } from "../interaction/Interactable";
 import { SoundManager } from "../game/SoundManager";
+import { isGameplayActive } from "../game/GameState";
 import { Rng, generateSeed } from "./Rng";
 import { SaveSystem } from "../save/SaveSystem";
 import { AssetLoader } from "./AssetLoader";
-import { REMOTE_MODELS, LOCAL_MODELS } from "./AssetCatalog";
+import { REMOTE_MODELS, LOCAL_MODELS, LOCAL_TEXTURES } from "./AssetCatalog";
 import { Animal, ANIMAL_SPECS } from "./Animals";
 
 let _sharedFlareTex: DynamicTexture | null = null;
@@ -23,6 +26,18 @@ function getFlareTexture(scene: Scene): DynamicTexture {
         _sharedFlareScene = scene;
     }
     return _sharedFlareTex;
+}
+
+// Repaint registry: when a source DynamicTexture canvas is repainted (the
+// async LOCAL_TEXTURES photo override), tiled clones redraw their copies.
+const _repaintListeners = new WeakMap<DynamicTexture, (() => void)[]>();
+function onTextureRepaint(tex: DynamicTexture, fn: () => void): void {
+    const list = _repaintListeners.get(tex) ?? [];
+    list.push(fn);
+    _repaintListeners.set(tex, list);
+}
+function notifyTextureRepaint(tex: DynamicTexture): void {
+    for (const fn of _repaintListeners.get(tex) ?? []) fn();
 }
 
 // Babylon's Texture.clone() on a DynamicTexture allocates a new GL texture but
@@ -38,6 +53,11 @@ function cloneDynamicTextureTiled(src: DynamicTexture, uScale: number, vScale: n
     out.update(false);
     out.uScale = uScale;
     out.vScale = vScale;
+    onTextureRepaint(src, () => {
+        dstCtx.clearRect(0, 0, size.width, size.height);
+        dstCtx.drawImage(srcCanvas, 0, 0);
+        out.update(false);
+    });
     return out;
 }
 
@@ -51,7 +71,11 @@ export class Island {
     private _baseFish!: Mesh;
     private _basePalmLeaf!: Mesh;
     private _mistPatches: Mesh[] = [];
-    private _crabObstacles: { x: number; z: number; r: number }[] = [];
+    private _crabObstacles: { id: string; x: number; z: number; r: number }[] = [];
+    // Harvested nodes come back after a pause-aware delay so a long-running
+    // save can never permanently exhaust a resource type.
+    private _pendingRespawns: { type: string; position: Vector3; id: string; remaining: number }[] = [];
+    private _respawnCounter: number = 0;
     private _woodTex!: DynamicTexture;
     private _grassTex!: DynamicTexture;
     private _rockTex!: DynamicTexture;
@@ -61,6 +85,7 @@ export class Island {
     private _rng: Rng;
     private _collected: Set<string>;
     private _assets: AssetLoader;
+    private _fishReady: Promise<boolean> | null = null;
 
     constructor(scene: Scene, seed?: number, collected?: Iterable<string>) {
         this._scene = scene;
@@ -76,12 +101,79 @@ export class Island {
 
     public get seed(): number { return this._seed; }
 
+    // Real-time seconds a harvested node stays gone before the isle regrows it.
+    // Crates are shipwreck loot and never return.
+    private static RESPAWN_SECONDS: Record<string, number> = {
+        fish: 75,
+        crab: 45,
+        driftwood: 120,
+        banana: 120,
+        stone: 150,
+        bush: 210,
+        flint: 240,
+        scrap: 240,
+        tree: 300,
+        rock: 360
+    };
+
+    private _tickRespawns(): void {
+        if (this._pendingRespawns.length === 0 || !isGameplayActive()) return;
+        const dt = this._scene.getEngine().getDeltaTime() / 1000;
+        for (let i = this._pendingRespawns.length - 1; i >= 0; i--) {
+            const r = this._pendingRespawns[i];
+            r.remaining -= dt;
+            if (r.remaining > 0) continue;
+            this._pendingRespawns.splice(i, 1);
+            // A fresh id means the regrown node is never in the collected set,
+            // so it survives save/load like any first-generation node.
+            this._spawnOne(r.type, r.position, `${r.id}_respawn_${Date.now()}_${this._respawnCounter++}`);
+        }
+    }
+
+    private _scheduleRespawn(type: string, position: Vector3, oldId: string): void {
+        const seconds = Island.RESPAWN_SECONDS[type];
+        if (!seconds) return;
+        this._pendingRespawns.push({ type, position: position.clone(), id: oldId, remaining: seconds });
+    }
+
+    // Test hook: fast-forwards every pending regrowth timer by N seconds.
+    public fastForwardRespawns(seconds: number): void {
+        for (const r of this._pendingRespawns) r.remaining -= seconds;
+    }
+
+    private _addObstacle(id: string, x: number, z: number, r: number): void {
+        this._crabObstacles.push({ id, x, z, r });
+    }
+
+    private _removeObstacle(id: string): void {
+        this._crabObstacles = this._crabObstacles.filter(o => o.id !== id);
+    }
+
     private _initTextures(): void {
         this._woodTex = ProceduralTextures.wood(this._scene);
         this._grassTex = ProceduralTextures.grass(this._scene);
         this._rockTex = ProceduralTextures.rock(this._scene);
         this._sandTex = ProceduralTextures.sand(this._scene);
         this._waterTex = ProceduralTextures.water(this._scene);
+        // Documented drop-in path (see AssetCatalog): drop a real image at
+        // public/assets/polyhaven/<name>.jpg and it paints over the procedural
+        // canvas. Files are same-origin (no canvas tainting); a 404 simply
+        // never fires onload, so procedural art stays.
+        const tryPhoto = (tex: DynamicTexture, url: string): void => {
+            const img = new Image();
+            img.onload = () => {
+                const size = tex.getSize();
+                const ctx = tex.getContext() as unknown as CanvasRenderingContext2D;
+                ctx.drawImage(img, 0, 0, size.width, size.height);
+                tex.update(false);
+                notifyTextureRepaint(tex);
+            };
+            img.src = url;
+        };
+        tryPhoto(this._woodTex, LOCAL_TEXTURES.wood);
+        tryPhoto(this._grassTex, LOCAL_TEXTURES.grass);
+        tryPhoto(this._rockTex, LOCAL_TEXTURES.rock);
+        tryPhoto(this._sandTex, LOCAL_TEXTURES.sand);
     }
 
     private _cloneTiled(src: DynamicTexture, uScale: number, vScale: number): DynamicTexture {
@@ -93,6 +185,13 @@ export class Island {
         this._createBaseMeshes();
         this._createTerrain();
         this._createRegionalMist();
+        this._scene.onBeforeRenderObservable.add(() => this._tickRespawns());
+        // The remote fish.glb is ~46 MB — kick it off first so warm-cache loads
+        // usually have it ready, but never await it: ponds spawn procedural fish
+        // and the model joins the pond as an ambient school if/when it lands.
+        // (No timer-based grace window here — throttled background tabs can
+        // delay setTimeout by minutes, which would stall world load.)
+        this._fishReady = this._assets.load(REMOTE_MODELS.fish).then(c => !!c).catch(() => false);
         // Fetch optional external models in parallel with no-op fallback to procedural meshes.
         await this._assets.loadAll([
             REMOTE_MODELS.tree,
@@ -101,11 +200,33 @@ export class Island {
             REMOTE_MODELS.rock,
             REMOTE_MODELS.crate,
             REMOTE_MODELS.barrel,
-            REMOTE_MODELS.fish,
+            REMOTE_MODELS.hollowLog,
             LOCAL_MODELS.crab,
         ]);
         this._spawnNodes();
         this._createRaft();
+        this._createBeachProps();
+        this._fishReady.then(ok => {
+            if (ok) this._spawnFishSchool();
+        });
+    }
+
+    // Driftwood props that use the vendored hollow log model (loaded above).
+    private _createBeachProps(): void {
+        const spots = [new Vector3(9, 0.12, -19), new Vector3(-14, 0.12, 9)];
+        for (const spot of spots) {
+            const log = this._assets.instantiate(REMOTE_MODELS.hollowLog);
+            if (!log) continue;
+            // The Village Pack log is ~4 m long and 1.5 m thick — tone it down.
+            log.scaling = new Vector3(0.6, 0.6, 0.6);
+            log.position = spot;
+            log.rotation.y = Math.random() * Math.PI * 2;
+            log.getChildMeshes().forEach(m => {
+                m.isPickable = false;
+                m.freezeWorldMatrix();
+            });
+            log.freezeWorldMatrix();
+        }
     }
 
     private _createBaseMeshes(): void {
@@ -133,16 +254,59 @@ export class Island {
         this._baseCrate.material = crateMat;
         this._baseCrate.isVisible = false;
 
-        this._baseCrab = MeshBuilder.CreateBox("baseCrab", { width: 0.4, height: 0.2, depth: 0.4 }, this._scene);
+        // Crab built from a few merged primitives so the fallback reads as a
+        // crab rather than a box; one mesh keeps createInstance() working.
+        const crabParts: Mesh[] = [];
+        const crabBody = MeshBuilder.CreateSphere("crabBody", { diameter: 0.42, segments: 6 }, this._scene);
+        crabBody.scaling = new Vector3(1.35, 0.6, 1);
+        crabParts.push(crabBody);
+        for (const side of [-1, 1]) {
+            const claw = MeshBuilder.CreateSphere("crabClaw", { diameter: 0.17, segments: 5 }, this._scene);
+            claw.position = new Vector3(0.24 * side, 0, 0.16);
+            crabParts.push(claw);
+            for (let l = 0; l < 3; l++) {
+                const leg = MeshBuilder.CreateCylinder("crabLeg", { diameter: 0.045, height: 0.3, tessellation: 5 }, this._scene);
+                leg.rotation.x = Math.PI / 2.6;
+                leg.rotation.y = side * (0.6 + l * 0.5);
+                leg.position = new Vector3(0.17 * side, -0.06, -0.12 + l * 0.13);
+                crabParts.push(leg);
+            }
+            const eye = MeshBuilder.CreateSphere("crabEye", { diameter: 0.07, segments: 4 }, this._scene);
+            eye.position = new Vector3(0.09 * side, 0.13, 0.16);
+            crabParts.push(eye);
+        }
+        this._baseCrab = Mesh.MergeMeshes(crabParts, true, true)!;
         const crabMat = new StandardMaterial("crabMat", this._scene);
-        crabMat.diffuseColor = new Color3(0.8, 0.2, 0.2);
+        crabMat.diffuseColor = new Color3(0.8, 0.25, 0.15);
         this._baseCrab.material = crabMat;
         this._baseCrab.isVisible = false;
 
-        this._baseFish = MeshBuilder.CreateCylinder("baseFish", { diameter: 0.3, height: 0.6 }, this._scene);
-        this._baseFish.rotation.z = Math.PI / 2;
+        // Fish built from merged primitives (body, tail, dorsal and pectoral
+        // fins) so the catchable fish reads as a fish; one mesh + one material
+        // keeps createInstance() working for every spawn. Authored facing +Z.
+        const fishParts: Mesh[] = [];
+        const fishBody = MeshBuilder.CreateSphere("fishBody", { diameter: 0.34, segments: 6 }, this._scene);
+        fishBody.scaling = new Vector3(0.75, 0.95, 1.8);
+        fishParts.push(fishBody);
+        const tail = MeshBuilder.CreateCylinder("fishTail", { diameterTop: 0, diameterBottom: 0.26, height: 0.26, tessellation: 4 }, this._scene);
+        tail.rotation.x = Math.PI / 2; // cone axis onto Z, wide base to the rear
+        tail.scaling = new Vector3(0.14, 1, 1);
+        tail.position = new Vector3(0, 0, -0.34);
+        fishParts.push(tail);
+        const dorsal = MeshBuilder.CreateBox("fishDorsal", { width: 0.04, height: 0.12, depth: 0.22 }, this._scene);
+        dorsal.position = new Vector3(0, 0.17, -0.06);
+        fishParts.push(dorsal);
+        for (const side of [-1, 1]) {
+            const fin = MeshBuilder.CreateBox("fishFin", { width: 0.03, height: 0.06, depth: 0.14 }, this._scene);
+            fin.position = new Vector3(0.13 * side, -0.03, 0.08);
+            fin.rotation.z = side * 0.55;
+            fishParts.push(fin);
+        }
+        this._baseFish = Mesh.MergeMeshes(fishParts, true, true)!;
+        this._baseFish.name = "baseFish";
         const fishMat = new StandardMaterial("fishMat", this._scene);
-        fishMat.diffuseColor = new Color3(0.2, 0.4, 0.8);
+        fishMat.diffuseColor = new Color3(0.42, 0.62, 0.66);
+        fishMat.specularColor = new Color3(0.55, 0.55, 0.55);
         this._baseFish.material = fishMat;
         this._baseFish.isVisible = false;
 
@@ -193,10 +357,23 @@ export class Island {
         pond.position = new Vector3(20, 0.05, 5); // Sits just above terrain surface at y=0
         pond.checkCollisions = false;
         const pondMat = new StandardMaterial("pond_mat", this._scene);
-        pondMat.diffuseTexture = this._cloneTiled(this._waterTex, 5, 5);
+        const pondTex = this._cloneTiled(this._waterTex, 5, 5);
+        pondTex.wrapU = Texture.WRAP_ADDRESSMODE;
+        pondTex.wrapV = Texture.WRAP_ADDRESSMODE;
+        pondMat.diffuseTexture = pondTex;
         pondMat.specularColor = new Color3(1, 1, 1);
-        pondMat.alpha = 0.8;
+        pondMat.emissiveColor = new Color3(0.04, 0.1, 0.12);
+        // Translucent enough to see the pond fish swim; opaque enough to still
+        // read as water from the shore.
+        pondMat.alpha = 0.55;
         pond.material = pondMat;
+
+        // Slow current: the water texture drifts so the surface is never static.
+        this._scene.onBeforeRenderObservable.add(() => {
+            const t = performance.now() * 0.00001;
+            pondTex.uOffset = Math.sin(t * 2.1) * 0.08;
+            pondTex.vOffset = (t * 0.6) % 1;
+        });
 
         pond.metadata = {
             interactable: {
@@ -220,6 +397,9 @@ export class Island {
         const woodMat = new StandardMaterial("wood_mat", this._scene);
         woodMat.diffuseColor = new Color3(0.2, 0.15, 0.1);
         mast.material = woodMat;
+
+        // Terrain never moves: skip per-frame world-matrix recompute.
+        [base1, base2, grove, bluff, pond, mast].forEach(m => m.freezeWorldMatrix());
 
         this._createBeachDetails();
     }
@@ -247,7 +427,7 @@ export class Island {
             { name: "mountain_mist_2", position: new Vector3(9, 12, 55), scale: new Vector3(15, 7, 1), alpha: 0.17 }
         ];
 
-        patches.forEach((patch, i) => {
+        patches.forEach((patch) => {
             // Build a fresh material per patch sharing the mist texture; cloning a
             // StandardMaterial deep-clones DynamicTextures into non-ready stubs.
             const mat = new StandardMaterial(`${patch.name}_mat`, this._scene);
@@ -268,12 +448,16 @@ export class Island {
             mist.isPickable = false;
             mist.renderingGroupId = 1;
             this._mistPatches.push(mist);
+        });
 
-            const phase = i * 0.8;
-            this._scene.onBeforeRenderObservable.add(() => {
-                const t = performance.now() * 0.00035 + phase;
-                mist.position.y = patch.position.y + Math.sin(t) * 0.18;
-                mat.alpha = patch.alpha + Math.sin(t * 1.7) * 0.025;
+        // One observable drifts every patch instead of one per patch.
+        this._scene.onBeforeRenderObservable.add(() => {
+            const t = performance.now() * 0.00035;
+            this._mistPatches.forEach((mist, i) => {
+                const phase = i * 0.8;
+                const alpha = patches[i].alpha;
+                mist.position.y = patches[i].position.y + Math.sin(t + phase) * 0.18;
+                mist.material!.alpha = alpha + Math.sin((t + phase) * 1.7) * 0.025;
             });
         });
     }
@@ -289,7 +473,9 @@ export class Island {
                 case "tree": case "bush": return 0.1;
                 case "rock": case "crate": return 0.5;
                 case "crab": return 0.2;
-                case "fish": return 0.15;
+                // Catchable fish swim just under the surface: body readable
+                // through the translucent pond, back fins breaking the top.
+                case "fish": return 0.02;
                 case "banana": return 0.25;
                 case "monkey": case "boar": case "wolf": case "tiger": return 0.05;
                 default: return 0.25;
@@ -338,8 +524,9 @@ export class Island {
                 contents: [["tree", 6, 9], ["bush", 4, 6], ["banana", 3, 4], ["monkey", 2, 3], ["wolf", 1, 1]]
             },
             {
-                // Fish inside the pond
-                cx: 20, cz: 5, radius: 8,
+                // Fish inside the pond — kept away from the rim so they stay
+                // visually submerged.
+                cx: 20, cz: 5, radius: 5.5,
                 inside: (x, z) => this._inPond(x, z),
                 contents: [["fish", 2, 3]]
             },
@@ -402,11 +589,7 @@ export class Island {
 
         const spawn = (type: string, position: Vector3) => {
             const id = `${type}_${idCounter++}`;
-            console.log(`[Island.spawn] Attempting to spawn ${type} as ${id} at ${position.x.toFixed(2)}, ${position.z.toFixed(2)}`);
-            if (this._collected.has(id)) {
-                console.log(`[Island.spawn] Skipped ${id} (marked collected)`);
-                return;
-            }
+            if (this._collected.has(id)) return;
             this._spawnOne(type, position, id);
         };
 
@@ -436,29 +619,17 @@ export class Island {
 
     private _spawnOne(type: string, position: Vector3, id: string): void {
         switch (type) {
-            case "driftwood": this._createPickup(position, id, "Driftwood", "wood", 1, new Color3(0.6, 0.4, 0.2)); break;
-            case "stone": this._createPickup(position, id, "Small Stone", "stone", 1, new Color3(0.5, 0.5, 0.5)); break;
-            case "flint": this._createPickup(position, id, "Flint", "flint", 1, new Color3(0.2, 0.2, 0.2)); break;
-            case "scrap": this._createPickup(position, id, "Metal Scrap", "scrap", 1, new Color3(0.7, 0.7, 0.8)); break;
-            case "tree":
-                this._createTree(position, id);
-                this._crabObstacles.push({ x: position.x, z: position.z, r: 1.1 });
-                break;
-            case "bush":
-                this._createBush(position, id);
-                this._crabObstacles.push({ x: position.x, z: position.z, r: 0.9 });
-                break;
-            case "rock":
-                this._createLargeRock(position, id);
-                this._crabObstacles.push({ x: position.x, z: position.z, r: 1.6 });
-                break;
-            case "crate":
-                this._createCrate(position, id);
-                this._crabObstacles.push({ x: position.x, z: position.z, r: 0.8 });
-                break;
+            case "driftwood": this._createPickup(position, id, "Driftwood", "wood", 1, new Color3(0.6, 0.4, 0.2), type); break;
+            case "stone": this._createPickup(position, id, "Small Stone", "stone", 1, new Color3(0.5, 0.5, 0.5), type); break;
+            case "flint": this._createPickup(position, id, "Flint", "flint", 1, new Color3(0.2, 0.2, 0.2), type); break;
+            case "scrap": this._createPickup(position, id, "Metal Scrap", "scrap", 1, new Color3(0.7, 0.7, 0.8), type); break;
+            case "tree": this._createTree(position, id); break;
+            case "bush": this._createBush(position, id); break;
+            case "rock": this._createLargeRock(position, id); break;
+            case "crate": this._createCrate(position, id); break;
             case "crab": this._createCrab(position, id); break;
             case "fish": this._createFish(position, id); break;
-            case "banana": this._createPickup(position, id, "Banana", "banana", 1, new Color3(0.9, 0.8, 0.2)); break;
+            case "banana": this._createPickup(position, id, "Banana", "banana", 1, new Color3(0.9, 0.8, 0.2), type); break;
             case "monkey": case "boar": case "wolf": case "tiger":
                 this._createAnimal(type, position, id); break;
         }
@@ -472,7 +643,7 @@ export class Island {
         return x * x + (z - 45) * (z - 45) <= 30 * 30;
     }
 
-    private _createPickup(position: Vector3, id: string, name: string, resourceType: string, amount: number, color: Color3): void {
+    private _createPickup(position: Vector3, id: string, name: string, resourceType: string, amount: number, color: Color3, nodeType: string): void {
         const mesh = resourceType === "stone"
             ? MeshBuilder.CreatePolyhedron(id, { type: 2, size: 0.45 }, this._scene)
             : MeshBuilder.CreateBox(id, { size: 0.5 }, this._scene);
@@ -484,6 +655,7 @@ export class Island {
             mesh.rotation = new Vector3(Math.random() * 0.4, Math.random() * Math.PI, Math.random() * 0.4);
         }
         mesh.material = mat;
+        mesh.freezeWorldMatrix();
 
         mesh.metadata = {
             interactable: {
@@ -495,12 +667,16 @@ export class Island {
                     hud.showNotification(`+${amount} ${name}`);
                     SaveSystem.markCollected(id);
                     mesh.dispose();
+                    // Tide and regrowth bring singles back; the id chain keeps
+                    // respawns out of the collected set.
+                    this._scheduleRespawn(nodeType, position, id);
                 }
             } as Interactable
         };
     }
 
     private _createTree(position: Vector3, id: string): void {
+        this._addObstacle(id, position.x, position.z, 1.1);
         let treeMesh: any;
         const variant = this._rng.next() < 0.5 ? REMOTE_MODELS.tree : REMOTE_MODELS.tree2;
         const loaded = this._assets.instantiate(variant) ?? this._assets.instantiate(REMOTE_MODELS.tree);
@@ -514,6 +690,8 @@ export class Island {
             treeMesh.position = position.add(new Vector3(0, 3, 0));
             treeMesh.checkCollisions = true;
         }
+
+        treeMesh.freezeWorldMatrix();
 
         treeMesh.metadata = {
             hits: 0,
@@ -539,6 +717,8 @@ export class Island {
                         inventory.addItem("coconut", 1);
                         hud.showNotification("Tree Felled (+2 Wood, +2 Leaf, +1 Coconut)");
                         SaveSystem.markCollected(id);
+                        this._removeObstacle(id);
+                        this._scheduleRespawn("tree", position, id);
                         treeMesh.dispose();
                     } else {
                         const remaining = requiredHits - treeMesh.metadata.hits;
@@ -558,6 +738,7 @@ export class Island {
             leaf.position.x += Math.sin(leaf.rotation.y) * 1.1;
             leaf.position.z += Math.cos(leaf.rotation.y) * 1.1;
             leaf.isPickable = false;
+            leaf.freezeWorldMatrix();
         }
     }
 
@@ -580,6 +761,7 @@ export class Island {
     }
 
     private _createBush(position: Vector3, id: string): void {
+        this._addObstacle(id, position.x, position.z, 0.9);
         const loaded = this._assets.instantiate(REMOTE_MODELS.bush);
         const bush: any = loaded ?? this._baseBush.createInstance(id);
         bush.position = position;
@@ -588,6 +770,7 @@ export class Island {
             bush.rotation = new Vector3(0, this._rng.next() * Math.PI * 2, 0);
         }
         bush.checkCollisions = true;
+        bush.freezeWorldMatrix();
 
         bush.metadata = {
             interactable: {
@@ -601,6 +784,8 @@ export class Island {
                     this._spawnParticles(bush.position, new Color3(0.2, 0.8, 0.2));
                     hud.showNotification("Gathered (+2 Fiber, +3 Berry, +2 Leaf)");
                     SaveSystem.markCollected(id);
+                    this._removeObstacle(id);
+                    this._scheduleRespawn("bush", position, id);
                     bush.dispose();
                 }
             } as Interactable
@@ -608,6 +793,7 @@ export class Island {
     }
 
     private _createLargeRock(position: Vector3, id: string): void {
+        this._addObstacle(id, position.x, position.z, 1.6);
         let rockMesh: any;
         const loaded = this._assets.instantiate(REMOTE_MODELS.rock);
         if (loaded) {
@@ -619,6 +805,8 @@ export class Island {
             rockMesh.position = position.add(new Vector3(0, 1, 0));
             rockMesh.checkCollisions = true;
         }
+
+        rockMesh.freezeWorldMatrix();
 
         rockMesh.metadata = {
             hits: 0,
@@ -643,6 +831,8 @@ export class Island {
                         inventory.addItem("stone", 3);
                         hud.showNotification("Mined Rock (+3 Stone)");
                         SaveSystem.markCollected(id);
+                        this._removeObstacle(id);
+                        this._scheduleRespawn("rock", position, id);
                         rockMesh.dispose();
                     } else {
                         const remaining = requiredHits - rockMesh.metadata.hits;
@@ -654,6 +844,7 @@ export class Island {
     }
 
     private _createCrate(position: Vector3, id: string): void {
+        this._addObstacle(id, position.x, position.z, 0.8);
         // Randomly alternate between crate and barrel props for visual variety.
         const modelUrl = this._rng.next() < 0.5 ? REMOTE_MODELS.crate : REMOTE_MODELS.barrel;
         const loaded = this._assets.instantiate(modelUrl) ?? this._assets.instantiate(REMOTE_MODELS.crate);
@@ -662,6 +853,7 @@ export class Island {
         crate.scaling = loaded ? new Vector3(1.0, 1.0, 1.0) : new Vector3(2, 2, 2);
         if (loaded) crate.rotation = new Vector3(0, this._rng.next() * Math.PI * 2, 0);
         crate.checkCollisions = true;
+        crate.freezeWorldMatrix();
 
         crate.metadata = {
             interactable: {
@@ -676,6 +868,7 @@ export class Island {
                     inventory.addItem("wood", 5);
                     hud.showNotification("Smashed Crate (+3 Rope, +3 Cloth, +2 Scrap, +5 Wood)");
                     SaveSystem.markCollected(id);
+                    this._removeObstacle(id);
                     crate.dispose();
                 }
             } as Interactable
@@ -810,29 +1003,60 @@ export class Island {
                     hud.showNotification("Caught Crab (+1 Raw Fish)");
                     SaveSystem.markCollected(id);
                     crab.dispose();
-                    setTimeout(() => {
-                        if (this._baseCrab && !this._baseCrab.isDisposed()) {
-                            this._createCrab(spawnPosition, `${id}_respawn_${Date.now()}`);
-                        }
-                    }, 45000);
+                    this._scheduleRespawn("crab", spawnPosition, id);
                 }
             } as Interactable
         };
     }
 
     private _createFish(position: Vector3, id: string): void {
-        console.log(`[Island._createFish] Creating fish ${id} at ${position.x.toFixed(2)}, ${position.z.toFixed(2)}`);
-        const loaded = this._assets.instantiate(REMOTE_MODELS.fish);
-        console.log(`[Island._createFish] loaded is: ${loaded ? 'TransformNode' : 'null fallback'}`);
-        if (loaded) {
-            loaded.name = id;
-            loaded.getChildMeshes().forEach(m => {
-                m.name = `${id}_mesh_${m.name}`;
-            });
-        }
-        const fish: any = loaded ?? this._baseFish.createInstance(id);
-        fish.position = position;
-        if (loaded) fish.scaling = new Vector3(0.3, 0.3, 0.3);
+        // Catchable fish stay procedural: one mesh per fish keeps every click a
+        // single catch target, unlike the glTF school (one rig, many fish).
+        const fish: any = this._baseFish.createInstance(id);
+        const spawnY = position.y;
+        fish.position = position.clone();
+        fish.rotation.y = Math.random() * Math.PI * 2;
+
+        // Lazy idle swim inside the pond's deep water (mirrors the crab wander):
+        // drift to a target, pause, pick a new one. The isle waits while paused.
+        const centreX = 20, centreZ = 5, roamR = 4.4;
+        let target = position.clone();
+        let pauseUntil = 0;
+        const pickTarget = () => {
+            const a = Math.random() * Math.PI * 2;
+            const r = Math.sqrt(Math.random()) * roamR;
+            target = new Vector3(centreX + Math.cos(a) * r, spawnY, centreZ + Math.sin(a) * r);
+        };
+        pickTarget();
+        const phase = Math.random() * Math.PI * 2;
+        const moveObs = this._scene.onBeforeRenderObservable.add(() => {
+            if (!isGameplayActive()) return;
+            const dt = this._scene.getEngine().getDeltaTime() / 1000;
+            const now = performance.now();
+            const dx = target.x - fish.position.x;
+            const dz = target.z - fish.position.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+
+            // gentle bob even while resting, so the fish never freezes solid
+            const t = now * 0.003 + phase;
+            fish.position.y = spawnY + Math.sin(t) * 0.03;
+
+            if (now < pauseUntil) return;
+            if (dist < 0.15) {
+                pauseUntil = now + 800 + Math.random() * 2500;
+                pickTarget();
+                return;
+            }
+            const step = Math.min(dist, 0.45 * dt);
+            fish.position.x += (dx / dist) * step;
+            fish.position.z += (dz / dist) * step;
+            fish.rotation.y = Math.atan2(dx, dz); // geometry faces +Z
+            // tail-flick wobble while swimming
+            fish.rotation.z = Math.sin(now * 0.02 + phase) * 0.08;
+        });
+        fish.onDisposeObservable.add(() => {
+            this._scene.onBeforeRenderObservable.remove(moveObs);
+        });
 
         fish.metadata = {
             interactable: {
@@ -843,19 +1067,84 @@ export class Island {
                     inventory.addItem("fish", 1);
                     hud.showNotification("Caught Fish (+1 Raw Fish)");
                     SaveSystem.markCollected(id);
+                    this._scheduleRespawn("fish", position, id);
                     fish.dispose();
                 }
             } as Interactable
         };
     }
 
+    // The tropical-fish GLB is an entire animated school circling a shared rig,
+    // not a single fish — so it joins the pond as one ambient centrepiece at
+    // the centre, while the catchable fish above stay individually clickable.
+    private _spawnFishSchool(): void {
+        const school = this._assets.instantiate(REMOTE_MODELS.fish);
+        if (!school) return;
+        school.name = "fish_school";
+        school.position = new Vector3(20, -0.5, 5); // pond centre
+        school.rotation.y = Math.random() * Math.PI * 2;
+        // glTF skinned meshes ignore ancestor scaling, so the school is resized
+        // through a wrapper inserted between the placed root and the rig nodes;
+        // the swim clip only overwrites locals below the wrapper. 0.12 keeps
+        // the circling fish over deep water with only the leap arcs breaking
+        // the surface.
+        const wrapper = new TransformNode("fish_school_scale", this._scene);
+        wrapper.scaling = new Vector3(0.12, 0.12, 0.12);
+        wrapper.parent = school;
+        school.getDescendants(false).forEach(node => {
+            if (node !== wrapper && node.parent === school) node.parent = wrapper;
+        });
+        school.getChildMeshes().forEach(m => {
+            m.isPickable = false; // clicks pass through to the catchable fish
+        });
+    }
+
     private _createRaft(): void {
-        const raft = MeshBuilder.CreateBox("raft", { width: 5, height: 0.5, depth: 7 }, this._scene);
-        raft.position = new Vector3(5, 0.25, -35); // Escape Beach
-        
-        const mat = new StandardMaterial("raft_mat", this._scene);
-        mat.diffuseColor = new Color3(0.6, 0.4, 0.2);
-        raft.material = mat;
+        // Log raft with mast and sail, merged into one mesh (multi-material so
+        // the sail keeps its cloth colour).
+        const parts: Mesh[] = [];
+        const woodMat = new StandardMaterial("raft_wood_mat", this._scene);
+        woodMat.diffuseTexture = this._woodTex;
+        const clothMat = new StandardMaterial("raft_cloth_mat", this._scene);
+        clothMat.diffuseColor = new Color3(0.91, 0.88, 0.78);
+        clothMat.specularColor = new Color3(0, 0, 0);
+
+        for (let i = 0; i < 7; i++) {
+            const log = MeshBuilder.CreateCylinder(`raftLog${i}`, { height: 6.6, diameter: 0.55, tessellation: 7 }, this._scene);
+            log.rotation.z = Math.PI / 2;
+            log.position = new Vector3(0, 0, -2.8 + i * 0.95);
+            log.material = woodMat;
+            parts.push(log);
+        }
+        for (const z of [-2.2, 2.2]) {
+            const beam = MeshBuilder.CreateBox("raftBeam", { width: 5.4, height: 0.16, depth: 0.32 }, this._scene);
+            beam.position = new Vector3(0, 0.3, z);
+            beam.material = woodMat;
+            parts.push(beam);
+        }
+        const mast = MeshBuilder.CreateCylinder("raftMast", { height: 3.6, diameter: 0.16, tessellation: 7 }, this._scene);
+        mast.position = new Vector3(-1.2, 1.95, 0);
+        mast.material = woodMat;
+        parts.push(mast);
+        const yard = MeshBuilder.CreateCylinder("raftYard", { height: 2.6, diameter: 0.1, tessellation: 6 }, this._scene);
+        yard.rotation.z = Math.PI / 2;
+        yard.position = new Vector3(-1.2, 3.3, 0);
+        yard.material = woodMat;
+        parts.push(yard);
+        const sail = MeshBuilder.CreatePlane("raftSail", { width: 2.2, height: 2.2 }, this._scene);
+        sail.rotation.y = Math.PI / 2;
+        sail.position = new Vector3(-1.02, 2.2, 0);
+        sail.material = clothMat;
+        // Set after the material has a mesh (markAsDirty walks attached meshes).
+        clothMat.backFaceCulling = false;
+        parts.push(sail);
+
+        const raft = Mesh.MergeMeshes(parts, true, true, undefined, false, true)!;
+        raft.name = "raft";
+        raft.position = new Vector3(5, 0.3, -35); // Escape Beach
+        raft.rotation.y = 0.35;
+
+        raft.freezeWorldMatrix();
 
         raft.metadata = {
             interactable: {
@@ -911,6 +1200,7 @@ export class Island {
             mesh.scaling.y = detail.type === "shell" ? 0.35 : 1;
             mesh.material = detail.type === "shell" ? shellMat : coralMat;
             mesh.isPickable = false;
+            mesh.freezeWorldMatrix();
         });
     }
 }

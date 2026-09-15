@@ -64,10 +64,10 @@
                     <ul class="controls-list">
                         <li><span class="keys"><span class="kbd-glyph">◉</span></span><span>Left stick to move</span></li>
                         <li><span class="keys"><span class="kbd-glyph">↔</span></span><span>Drag right side to look</span></li>
-                        <li><span class="keys"><span class="kbd-glyph">⤴</span></span><span>Jump button</span></li>
-                        <li><span class="keys"><span class="kbd-glyph">✊</span></span><span>Interact button</span></li>
-                        <li><span class="keys"><span class="kbd-glyph">🎣</span></span><span>Fish near water</span></li>
-                        <li><span class="keys"><span class="kbd-glyph">🎒</span></span><span>Open backpack</span></li>
+                        <li><span class="keys"><span class="kbd-glyph"><svg class="kbd-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-ui-jump"></use></svg></span></span><span>Jump button</span></li>
+                        <li><span class="keys"><span class="kbd-glyph"><svg class="kbd-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-ui-interact"></use></svg></span></span><span>Interact button</span></li>
+                        <li><span class="keys"><span class="kbd-glyph"><svg class="kbd-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-ui-fish"></use></svg></span></span><span>Fish near water</span></li>
+                        <li><span class="keys"><span class="kbd-glyph"><svg class="kbd-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-ui-inventory"></use></svg></span></span><span>Open backpack</span></li>
                     </ul>
                 </div>
             </div>
@@ -134,7 +134,8 @@
             <h2>Credits</h2>
             <p>Developed by Antigravity</p>
             <p>Engine: Babylon.js</p>
-            <p>Art: Low-Poly Jungle Kit</p>
+            <p>Models: BabylonJS/Assets &mdash; Village Pack (CC-BY 4.0)</p>
+            <p>Textures, sounds &amp; icons: procedural, made for Driftwood Isle</p>
             <button id="closeCredits" class="back-btn">Back</button>
         </div>
     </div>
@@ -256,7 +257,7 @@
 
     <div id="victoryScreen" class="overlay">
         <div class="overlay-content">
-            <h1>🏝️ Island Escaped!</h1>
+            <h1>Island Escaped!</h1>
             <p>You repaired the raft and sailed to safety.</p>
             <button onclick="location.reload()">Return to Main Menu</button>
         </div>
@@ -264,7 +265,7 @@
 
     <div id="gameOverScreen" class="overlay">
         <div class="overlay-content">
-            <h1>💀 You Perished</h1>
+            <h1>You Perished</h1>
             <p>The island was too harsh this time.</p>
             <button onclick="location.reload()">Try Again</button>
         </div>

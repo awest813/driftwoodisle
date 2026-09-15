@@ -1,3 +1,5 @@
+import { isGameplayActive } from "../game/GameState";
+
 export interface Stats {
     health: number;
     hunger: number;
@@ -21,10 +23,12 @@ export class PlayerStats {
     private _intervalId: ReturnType<typeof setInterval> | null = null;
 
     constructor() {
-        // Survival loop
+        // Survival loop. Skipped while a menu/overlay is up so pausing pauses
+        // the island too, and after death so the run actually ends.
         this._intervalId = setInterval(() => {
-            this.decreaseHunger(0.02);
-            this.decreaseThirst(0.6);
+            if (!isGameplayActive()) return;
+            this.decreaseHunger(0.05);
+            this.decreaseThirst(0.15);
             if (this._stats.warmth < 100) this.restoreWarmth(0.5);
             // Don't refund stamina while the player is actively sprinting — that defeats the cost.
             if (!this._isSprinting && this._stats.stamina < 100 && this._stats.hunger > 10 && this._stats.thirst > 10) {
@@ -52,10 +56,11 @@ export class PlayerStats {
     }
 
     public decreaseHealth(amount: number): void {
+        const previous = this._stats.health;
         this._stats.health = Math.max(0, this._stats.health - amount);
         this._notify();
-        if (this._stats.health <= 0) {
-            // Handle Death
+        if (this._stats.health <= 0 && previous > 0) {
+            // Handle Death (once — the run is over, don't keep re-firing)
             window.dispatchEvent(new CustomEvent("playerDied"));
         }
     }

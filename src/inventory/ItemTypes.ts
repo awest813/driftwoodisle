@@ -23,6 +23,7 @@ export type ResourceType =
   | "workbench"
   | "dryingRack"
   | "cookedFish"
+  | "cookedMeat"
   | "driedFish"
   | "berryJam"
   | "bandage"

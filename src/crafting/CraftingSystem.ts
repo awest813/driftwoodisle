@@ -49,6 +49,8 @@ export class CraftingSystem {
 
     private _setupInput(): void {
         window.addEventListener("keydown", (e) => {
+            // Once the run has ended (victory/game over) the journal stays closed.
+            if (document.body.classList.contains("run-ended")) return;
             if (e.code === "KeyE" || e.code === "Tab") {
                 e.preventDefault();
                 this._hidePauseMenu();

@@ -61,6 +61,12 @@ export const recipes: Record<string, Recipe> = {
     creates: "cookedFish",
     station: "campfire"
   },
+  cookedMeat: {
+    name: "Cooked Meat 🍖",
+    requires: { meat: 1, wood: 1 },
+    creates: "cookedMeat",
+    station: "campfire"
+  },
   berryJam: {
     name: "Berry Jam 🍯",
     requires: { berry: 3, wood: 1 },

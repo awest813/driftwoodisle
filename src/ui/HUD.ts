@@ -154,6 +154,7 @@ export class HUD {
     }
 
     private _isAnyMenuOpen(): boolean {
+        if (document.body.classList.contains("run-ended")) return true;
         const crafting = document.getElementById("craftingMenu");
         const esc = document.getElementById("escMenu");
         const main = document.getElementById("mainMenu");
@@ -235,8 +236,29 @@ export class HUD {
         }
     }
 
-    public showNotification(text: string, kind?: "gain" | "info" | "warn" | "danger"): void {
-        const notifications = document.getElementById("notifications");
+    // Subtle autosave indicator: a brief pulse on the clock box instead of a
+    // toast, so autosaves never crowd out real notifications.
+    public flashSaved(): void {
+        const el = document.getElementById("timeTempUI");
+        if (!el) return;
+        el.classList.remove("saved-pulse");
+        void el.offsetWidth;
+        el.classList.add("saved-pulse");
+    }
+
+    // Short guided sequence for a fresh run: controls first, then the goal.
+    public showGettingStartedHints(): void {
+        const hints: Array<[number, string]> = [
+            [1500, "You wash ashore. Move with WASD or arrows — hold Shift to sprint."],
+            [7000, "Left-click to gather · E or Tab opens your journal & crafting."],
+            [13000, "Goal: repair the broken raft on this shore to escape the isle."],
+        ];
+        for (const [delay, text] of hints) {
+            window.setTimeout(() => this.showNotification(text, "info"), delay);
+        }
+    }
+
+    public showNotification(text: string, kind?: "gain" | "info" | "warn" | "danger"): void {        const notifications = document.getElementById("notifications");
         if (!notifications) return;
         const type = kind ?? this._inferKind(text);
 
@@ -288,6 +310,7 @@ export class HUD {
     public showVictory(): void {
         const el = document.getElementById("victoryScreen");
         if (el) el.style.display = "flex";
+        this._dismissMenus();
         document.body.classList.add("run-ended");
         document.exitPointerLock();
     }
@@ -295,7 +318,14 @@ export class HUD {
     public showGameOver(): void {
         const el = document.getElementById("gameOverScreen");
         if (el) el.style.display = "flex";
+        this._dismissMenus();
         document.body.classList.add("run-ended");
         document.exitPointerLock();
+    }
+
+    private _dismissMenus(): void {
+        const escMenu = document.getElementById("escMenu");
+        if (escMenu) escMenu.style.display = "none";
+        document.getElementById("craftingMenu")?.classList.remove("active");
     }
 }

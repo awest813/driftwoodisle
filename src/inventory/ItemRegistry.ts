@@ -47,6 +47,8 @@ export const ITEMS: Record<ResourceType, ItemDef> = {
     dryingRack:   { type: "dryingRack",   name: "Drying Rack",   icon: "dryingRack",   category: "structure", showInHotbar: false },
     cookedFish:   { type: "cookedFish",   name: "Cooked Fish",   icon: "cookedFish",   category: "food",     showInHotbar: true,
         food: { hunger: 40, warmth: 5, sound: "fish" } },
+    cookedMeat:   { type: "cookedMeat",   name: "Cooked Meat",   icon: "cookedMeat",   category: "food",     showInHotbar: true,
+        food: { hunger: 35, warmth: 10, sound: "fish" } },
     driedFish:    { type: "driedFish",    name: "Dried Fish",    icon: "driedFish",    category: "food",     showInHotbar: true,
         food: { hunger: 25, sound: "fish" } },
     berryJam:     { type: "berryJam",     name: "Berry Jam",     icon: "berryJam",     category: "food",     showInHotbar: true,
@@ -61,7 +63,7 @@ export const HOTBAR_ORDER: ResourceType[] = [
     "wood", "stone", "fiber", "leaf", "flint", "bone",
     "rope", "cloth", "scrap",
     "berry", "coconut", "banana", "meat", "fish",
-    "cookedFish", "driedFish", "berryJam", "bandage",
+    "cookedFish", "cookedMeat", "driedFish", "berryJam", "bandage",
 ];
 
 export const CATEGORY_LABELS: Record<ItemCategory, string> = {

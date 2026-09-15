@@ -300,6 +300,7 @@
     padding: 10px 14px;
     font-size: 0.95rem;
     letter-spacing: 2px;
+    white-space: nowrap;
 }
 
 .menu-btn:hover:not(:disabled),
@@ -382,6 +383,12 @@
     border-radius: 3px;
     box-shadow: 0 2px 0 var(--ink);
     font-size: 0.95rem;
+}
+
+.kbd-icon {
+    width: 1em;
+    height: 1em;
+    fill: currentColor;
 }
 
 .setting-row {
@@ -676,6 +683,25 @@ html, body {
     justify-content: space-between;
 }
 
+/* World still loading: keep gameplay chrome out of sight behind the journal. */
+body.is-loading #hud,
+body.is-loading #crosshair,
+body.is-loading #interactionPrompt,
+body.is-loading #damageVignette,
+body.is-loading #fpsCounter {
+    visibility: hidden;
+}
+
+#timeTempUI.saved-pulse {
+    animation: savedPulse 1.8s ease;
+}
+
+@keyframes savedPulse {
+    0% { border-color: #5a3c22; box-shadow: none; }
+    30% { border-color: #9fc39a; box-shadow: 0 0 10px rgba(159, 195, 154, 0.6); }
+    100% { border-color: #5a3c22; box-shadow: none; }
+}
+
 #compass {
     position: absolute;
     top: 20px;
@@ -694,11 +720,6 @@ html, body {
     font-weight: bold;
     letter-spacing: 2px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-}
-
-#compass-needle {
-    position: absolute;
-    transition: transform 0.1s linear;
 }
 
 .stats-container {

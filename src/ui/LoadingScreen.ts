@@ -7,6 +7,8 @@ export class LoadingScreen {
         const el = this._el();
         if (!el) return;
         el.style.display = "flex";
+        // Keep the HUD/crosshair hidden until the world is ready to play.
+        document.body.classList.add("is-loading");
         this.setStatus(initialStatus);
         this.setProgress(0);
     }
@@ -23,6 +25,7 @@ export class LoadingScreen {
             el.style.display = "none";
             el.style.opacity = "1";
             el.style.transition = "";
+            document.body.classList.remove("is-loading");
         }, 260);
     }
 
@@ -39,8 +42,15 @@ export class LoadingScreen {
     public static async step(status: string, fraction: number, task?: () => Promise<void> | void): Promise<void> {
         this.setStatus(status);
         this.setProgress(fraction);
-        // Yield to the browser so the status text and bar paint before the work runs.
-        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+        // Yield to the browser so the status text and bar paint before the work
+        // runs. Occluded/background windows suspend rAF entirely, so race it
+        // against a short timer instead of stalling world load forever.
+        await new Promise<void>(resolve => {
+            let done = false;
+            const finish = () => { if (!done) { done = true; resolve(); } };
+            requestAnimationFrame(finish);
+            setTimeout(finish, 60);
+        });
         if (task) await task();
     }
 }

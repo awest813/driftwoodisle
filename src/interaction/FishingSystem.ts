@@ -7,6 +7,7 @@ import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import type { Scene } from "@babylonjs/core/scene";
 import { SoundManager } from "../game/SoundManager";
+import { isGameplayActive } from "../game/GameState";
 
 type FishingState = "idle" | "waiting" | "bite";
 
@@ -24,6 +25,12 @@ export class FishingSystem {
     private _lastUseAt: number = 0;
     private _waitingMat: StandardMaterial;
     private _biteMat: StandardMaterial;
+    // Expanding water ring at the bobber; restarts on a cycle while the line
+    // is out and pulses faster during a bite.
+    private _ripple: Mesh | null = null;
+    private _rippleMat: StandardMaterial;
+    private _rippleT: number = 0;
+    private _rippleWaterY: number = 0;
 
     constructor(scene: Scene, inventory: any, hud: any) {
         this._scene = scene;
@@ -34,6 +41,14 @@ export class FishingSystem {
         this._waitingMat.diffuseColor = new Color3(0.95, 0.95, 0.95);
         this._biteMat = new StandardMaterial("bobber_bite_mat", this._scene);
         this._biteMat.diffuseColor = new Color3(1, 0.12, 0.08);
+
+        this._rippleMat = new StandardMaterial("fishing_ripple_mat", this._scene);
+        this._rippleMat.diffuseColor = new Color3(0.92, 0.97, 1);
+        this._rippleMat.specularColor = new Color3(0, 0, 0);
+        this._rippleMat.emissiveColor = new Color3(0.35, 0.4, 0.45);
+        this._rippleMat.alpha = 0;
+        this._rippleMat.disableLighting = true;
+        this._rippleMat.backFaceCulling = false;
 
         this._setupInput();
         this._scene.onBeforeRenderObservable.add(() => this._animateBobber());
@@ -108,6 +123,8 @@ export class FishingSystem {
         this._bobberBaseY = this._bobber.position.y;
         this._bobber.material = this._waitingMat;
         this._bobber.isPickable = false;
+        this._rippleWaterY = hit.pickedPoint.y;
+        this._spawnRipple();
         this._state = "waiting";
         this._casts++;
         SoundManager.instance?.play("water");
@@ -119,13 +136,29 @@ export class FishingSystem {
 
     private _triggerBite(): void {
         if (this._state !== "waiting" || !this._bobber) return;
+        // The isle waits while a menu is up: hold the bite until play resumes
+        // instead of letting the window expire behind the pause overlay.
+        if (!isGameplayActive()) {
+            this._biteTimer = window.setTimeout(() => this._triggerBite(), 500);
+            return;
+        }
         this._state = "bite";
         this._bobber.material = this._biteMat;
         this._bobberBaseY -= 0.18;
         this._bobber.position.y = this._bobberBaseY;
+        this._rippleT = 0; // splash ring right as the bite hits
         SoundManager.instance?.play("fish");
         this._hud.showNotification("Bite! Right-click to reel!");
-        this._missTimer = window.setTimeout(() => this._cancelCast("The fish got away."), 2500);
+        this._missTimer = window.setTimeout(() => this._missCheck(), 2500);
+    }
+
+    private _missCheck(): void {
+        if (this._state !== "bite") return;
+        if (!isGameplayActive()) {
+            this._missTimer = window.setTimeout(() => this._missCheck(), 500);
+            return;
+        }
+        this._cancelCast("The fish got away.");
     }
 
     private _catchFish(): void {
@@ -156,12 +189,43 @@ export class FishingSystem {
     private _disposeBobber(): void {
         this._bobber?.dispose();
         this._bobber = null;
+        this._disposeRipple();
+    }
+
+    private _spawnRipple(): void {
+        this._disposeRipple();
+        if (!this._bobber) return;
+        // Babylon tori lie flat in the XZ plane already — no rotation needed.
+        const ring = MeshBuilder.CreateTorus("fishing_ripple", { diameter: 1, thickness: 0.05, tessellation: 28 }, this._scene);
+        ring.position.set(this._bobber.position.x, this._rippleWaterY + 0.06, this._bobber.position.z);
+        ring.isPickable = false;
+        ring.material = this._rippleMat;
+        this._ripple = ring;
+        this._rippleT = 0;
+    }
+
+    private _disposeRipple(): void {
+        this._ripple?.dispose();
+        this._ripple = null;
     }
 
     private _animateBobber(): void {
         if (!this._bobber) return;
         const bob = Math.sin(performance.now() * 0.004) * (this._state === "bite" ? 0.08 : 0.035);
         this._bobber.position.y = this._bobberBaseY + bob;
+
+        if (this._ripple) {
+            const bite = this._state === "bite";
+            const cycle = bite ? 0.7 : 1.7;
+            this._rippleT += this._scene.getEngine().getDeltaTime() / 1000 / cycle;
+            if (this._rippleT >= 1) this._rippleT -= 1;
+            const t = this._rippleT;
+            const scale = 0.3 + t * (bite ? 1.7 : 1.1);
+            this._ripple.scaling.set(scale, 1, scale);
+            this._rippleMat.alpha = (1 - t) * (bite ? 0.6 : 0.4);
+            this._ripple.position.x = this._bobber.position.x;
+            this._ripple.position.z = this._bobber.position.z;
+        }
     }
 
     public getStatus(): { state: FishingState; casts: number; caught: number; bobber: null | { x: number; y: number; z: number } } {

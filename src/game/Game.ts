@@ -25,6 +25,8 @@ export class Game {
     private _mobileControls: any;
     private _island: any;
 
+    public get island() { return this._island; }
+
     public get inventory() { return this._inventory; }
     public get stats() { return this._stats; }
     public get hud() { return this._hud; }
@@ -55,6 +57,8 @@ export class Game {
         // Enable collisions and gravity
         this._scene.collisionsEnabled = true;
         this._scene.gravity = new Vector3(0, -0.9, 0);
+        // Interaction is click-driven; hovering the canvas never needs a ray pick.
+        this._scene.skipPointerMovePicking = true;
 
         // Fog
         this._scene.fogMode = Scene.FOGMODE_EXP;
@@ -141,7 +145,7 @@ export class Game {
             const { SaveSystem } = await import("../save/SaveSystem");
             if (isLoad && SaveSystem.hasSave()) {
                 await LoadingScreen.step("Reading the old journal", 0.82, () => {
-                    SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud);
+                    SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud, this._buildingSystem);
                 });
                 this._hud.showNotification("Game Loaded");
             }
@@ -158,13 +162,18 @@ export class Game {
             await LoadingScreen.step("Reading the weather", 0.98, async () => {
                 // Setup Weather after settings so ambience inherits saved audio volume.
                 const { WeatherSystem } = await import("../world/WeatherSystem");
-                this._weather = new WeatherSystem(this._scene, this._stats);
+                this._weather = new WeatherSystem(this._scene, this._stats, this._dayNight);
             });
 
             // Handle death
             window.addEventListener("playerDied", () => {
                 this._hud.showGameOver();
             });
+
+            // A fresh castaway gets a short guided sequence; loading a save does not.
+            if (!isLoad) {
+                this._hud.showGettingStartedHints();
+            }
         } finally {
             this._isStarting = false;
         }
@@ -228,11 +237,12 @@ export class Game {
         const sun = this._scene.getLightByName("dirLight") as DirectionalLight;
         this._dayNight = new DayNightCycle(this._scene, sun);
 
-        // Auto-save every 30 seconds
+        // Auto-save every 30 seconds. Silent — the clock box pulses briefly
+        // instead of a toast, so the notification feed stays for real events.
         setInterval(() => {
             if (this._playerController) {
-                SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud);
-                this._hud.showNotification("Game Auto-saved");
+                SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud, this._buildingSystem);
+                this._hud.flashSaved();
             }
         }, 30000);
     }
@@ -273,7 +283,7 @@ export class Game {
         };
         if (saveBtn) saveBtn.onclick = () => {
             import("../save/SaveSystem").then(({ SaveSystem }) => {
-                SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud);
+                SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud, this._buildingSystem);
                 this._hud.showNotification("Game Saved manually.");
                 this._resumeGameplay();
             });
@@ -281,7 +291,7 @@ export class Game {
         if (loadBtn) loadBtn.onclick = () => {
             import("../save/SaveSystem").then(({ SaveSystem }) => {
                 if (SaveSystem.hasSave()) {
-                    SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud);
+                    SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud, this._buildingSystem);
                     this._hud.showNotification("Game Loaded manually.");
                     this._resumeGameplay();
                 } else {
@@ -360,7 +370,8 @@ export class Game {
                 stats,
                 inventory,
                 weather: {
-                    raining: Boolean(this._weather?.isRaining)
+                    raining: Boolean(this._weather?.isRaining),
+                    cloudCover: Number((this._dayNight?.cloudCover ?? 0).toFixed(2))
                 },
                 audio: (window as any).soundManager?.getStatus?.() ?? null,
                 fishing: this._fishing?.getStatus?.() ?? null,

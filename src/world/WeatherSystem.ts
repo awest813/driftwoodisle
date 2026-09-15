@@ -7,21 +7,25 @@ import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { ParticleSystem } from "@babylonjs/core/Particles/particleSystem";
 import { Scene } from "@babylonjs/core/scene";
 import { PlayerStats } from "../player/PlayerStats";
+import type { DayNightCycle } from "./DayNightCycle";
+import { isGameplayActive } from "../game/GameState";
 import { SoundManager } from "../game/SoundManager";
 import { SettingsManager } from "../save/SettingsManager";
 
 export class WeatherSystem {
     private _scene: Scene;
     private _stats: PlayerStats;
+    private _dayNight: DayNightCycle | null;
     private _rainSystem: ParticleSystem | null = null;
     private _clouds: Mesh[] = [];
     private _isRaining: boolean = false;
     private _windTime: number = 0;
     private _rainEndTimeout: number | null = null;
 
-    constructor(scene: Scene, stats: PlayerStats) {
+    constructor(scene: Scene, stats: PlayerStats, dayNight: DayNightCycle | null = null) {
         this._scene = scene;
         this._stats = stats;
+        this._dayNight = dayNight;
 
         this._setupClouds();
         this._setupRain();
@@ -61,33 +65,44 @@ export class WeatherSystem {
         this._rainSystem.gravity = new Vector3(-2, -18, 1);
         this._rainSystem.direction1 = new Vector3(-0.35, -1, 0.1);
         this._rainSystem.direction2 = new Vector3(0.1, -1, 0.35);
-        
-        this._rainSystem.start();
+        // Started only when rain begins (see toggleRain) so clear weather pays
+        // nothing for the particle simulation.
 
+        // Exposure: rain chills, clear nights slowly freeze. A campfire warms,
+        // a shelter blocks the weather. Gated with the rest of the island so
+        // pausing freezes exposure too.
         setInterval(() => {
+            if (!isGameplayActive()) return;
+
+            let nearFire = false;
+            let underShelter = false;
+            if (this._scene.activeCamera) {
+                const p = this._scene.activeCamera.position;
+                this._scene.meshes.forEach(m => {
+                    if (m.name === "campfire" && Vector3.Distance(m.position, p) < 6) {
+                        nearFire = true;
+                    }
+                    if (m.name === "shelter" && Vector3.Distance(m.position, p) < 3.5) {
+                        underShelter = true;
+                    }
+                });
+            }
+
             if (this._isRaining) {
                 this._stats.restoreThirst(1.0);
-
-                let nearFire = false;
-                let underShelter = false;
-                if (this._scene.activeCamera) {
-                    const p = this._scene.activeCamera.position;
-                    this._scene.meshes.forEach(m => {
-                        if (m.name === "campfire" && Vector3.Distance(m.position, p) < 6) {
-                            nearFire = true;
-                        }
-                        if (m.name === "shelter" && Vector3.Distance(m.position, p) < 3.5) {
-                            underShelter = true;
-                        }
-                    });
-                }
-
                 if (nearFire) {
                     this._stats.restoreWarmth(2.0);
                 } else if (!underShelter) {
                     this._stats.decreaseWarmth(2.5);
                 }
-                // Under shelter (but no fire): rain is blocked, warmth holds steady.
+            } else if (this._dayNight?.isNight()) {
+                // Clear night: passive warmth regen (+0.5/s) loses to exposure
+                // (-1.0/s), so the player needs fire or shelter by morning.
+                if (nearFire) {
+                    this._stats.restoreWarmth(2.0);
+                } else if (!underShelter) {
+                    this._stats.decreaseWarmth(1.0);
+                }
             }
         }, 1000);
 
@@ -95,7 +110,8 @@ export class WeatherSystem {
         this._scene.onBeforeRenderObservable.add(() => {
             const cam = this._scene.activeCamera;
             if (cam && this._rainSystem) {
-                this._rainSystem.emitter = cam.position.add(new Vector3(0, 20, 0));
+                // Reuse the emitter vector — allocating here is per-frame GC churn.
+                (this._rainSystem.emitter as Vector3).set(cam.position.x, cam.position.y + 20, cam.position.z);
             }
             this._windTime += this._scene.getEngine().getDeltaTime() * 0.001;
             this._clouds.forEach((cloud, i) => {
@@ -137,8 +153,18 @@ export class WeatherSystem {
     public toggleRain(on: boolean): void {
         this._isRaining = on;
         SoundManager.instance?.setRain(on);
+        // Storm clouds shade the sun and wash out the sky (DayNightCycle eases
+        // toward this target), on top of the fog change below.
+        if (this._dayNight) this._dayNight.cloudCover = on ? 1 : 0;
         if (this._rainSystem) {
-            this._rainSystem.emitRate = on ? 650 : 0;
+            // Stop the system entirely when dry so the particle sim idles at zero cost.
+            if (on) {
+                this._rainSystem.start();
+                this._rainSystem.emitRate = 650;
+            } else {
+                this._rainSystem.emitRate = 0;
+                this._rainSystem.stop();
+            }
         }
 
         if (on) {

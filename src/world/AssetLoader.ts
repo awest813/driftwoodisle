@@ -47,13 +47,22 @@ export class AssetLoader {
     }
 
     // Returns a fresh instantiated copy if the model is loaded, else null.
+    // doNotInstantiate:false hardware-instances static meshes (skinned ones
+    // still clone), so repeated props share draw batches instead of each
+    // paying a full clone + draw call.
     public instantiate(url: string): TransformNode | null {
         const container = this._cache.get(url);
         if (!container) return null;
-        const result = container.instantiateModelsToScene(name => name);
+        const result = container.instantiateModelsToScene(name => name, false, { doNotInstantiate: false });
         const root = result.rootNodes[0] as TransformNode;
         root.setEnabled(true);
         root.getChildMeshes().forEach(m => m.setEnabled(true));
+        // Cloned animation groups (e.g. the fish "swimming" clip) start paused —
+        // play them so animated models actually animate. Animated nodes sit
+        // below the returned root, so caller placement composes over the clip.
+        for (const group of result.animationGroups) {
+            group.start(true);
+        }
         return root;
     }
 
