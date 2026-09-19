@@ -3,6 +3,8 @@ import { Inventory } from "../inventory/Inventory";
 import { ITEMS, HOTBAR_ORDER, itemDef } from "../inventory/ItemRegistry";
 import type { ResourceType } from "../inventory/ItemTypes";
 import { consumeItem } from "../inventory/Consume";
+import { MenuManager } from "./MenuManager";
+import { MobileControls } from "./MobileControls";
 import { itemIconHtml, statIconHtml } from "./ItemIcon";
 
 const HOTBAR_SIZE = 9;
@@ -55,9 +57,6 @@ export class HUD {
             if (wIcon) {
                 wIcon.innerHTML = statIconHtml(stats.warmth < 30 ? "cold" : "warmth", "item-icon stat-glyph");
             }
-            
-            const tDisp = document.getElementById("tempDisplay");
-            if (tDisp) tDisp.innerText = Math.round((stats.warmth / 100) * 37).toString();
 
             this._checkNeedWarnings(stats);
         });
@@ -85,6 +84,13 @@ export class HUD {
             if (this._isAnyMenuOpen()) return;
             const dir = e.deltaY > 0 ? 1 : -1;
             this._setActiveSlot((this._activeSlot + dir + HOTBAR_SIZE) % HOTBAR_SIZE);
+        });
+
+        document.querySelectorAll(".hotbar-slot").forEach((slot, i) => {
+            slot.addEventListener("click", () => {
+                if (this._isAnyMenuOpen()) return;
+                this._setActiveSlot(i);
+            });
         });
 
         // Compass update
@@ -126,7 +132,10 @@ export class HUD {
             (slot as HTMLElement).removeAttribute('title');
 
             const type = this._bindings[i];
-            if (!type) return;
+            if (!type) {
+                (slot as HTMLElement).setAttribute("aria-label", `Empty slot ${i + 1}`);
+                return;
+            }
             const def = ITEMS[type];
             const count = items[type] || 0;
             const iconWrap = document.createElement('span');
@@ -134,8 +143,12 @@ export class HUD {
             iconWrap.innerHTML = itemIconHtml(type, 'item-icon item-icon--hotbar');
             slot.insertBefore(iconWrap, qty);
             if (qty && count > 1) qty.textContent = count.toString();
+            const label = count > 0
+                ? `${def?.name || type}, slot ${i + 1}, quantity ${count}`
+                : `Empty slot ${i + 1}`;
             (slot as HTMLElement).setAttribute('data-item', type);
             (slot as HTMLElement).setAttribute('title', `${def?.name || type} (${count})`);
+            (slot as HTMLElement).setAttribute('aria-label', label);
         });
 
         this._applyActiveSlotClass();
@@ -154,14 +167,7 @@ export class HUD {
     }
 
     private _isAnyMenuOpen(): boolean {
-        if (document.body.classList.contains("run-ended")) return true;
-        const crafting = document.getElementById("craftingMenu");
-        const esc = document.getElementById("escMenu");
-        const main = document.getElementById("mainMenu");
-        if (crafting?.classList.contains("active")) return true;
-        if (esc && esc.style.display === "flex") return true;
-        if (main && main.style.display !== "none") return true;
-        return false;
+        return MenuManager.isAnyMenuOpen();
     }
 
     private _useActiveSlot(): void {
@@ -211,6 +217,8 @@ export class HUD {
         if (bar) bar.style.width = `${v}%`;
         const valEl = document.getElementById(`${key}Val`);
         if (valEl) valEl.innerText = Math.ceil(v).toString();
+        const progress = bar?.parentElement;
+        if (progress) progress.setAttribute("aria-valuenow", Math.ceil(v).toString());
         const row = bar?.closest(".stat-row") as HTMLElement | null;
         if (row) {
             row.classList.toggle("low", v < 30 && v >= 15);
@@ -248,11 +256,18 @@ export class HUD {
 
     // Short guided sequence for a fresh run: controls first, then the goal.
     public showGettingStartedHints(): void {
-        const hints: Array<[number, string]> = [
-            [1500, "You wash ashore. Move with WASD or arrows — hold Shift to sprint."],
-            [7000, "Left-click to gather · E or Tab opens your journal & crafting."],
-            [13000, "Goal: repair the broken raft on this shore to escape the isle."],
-        ];
+        const touch = MobileControls.isLikelyTouchDevice();
+        const hints: Array<[number, string]> = touch
+            ? [
+                [1500, "You wash ashore. Drag the left stick to move around the beach."],
+                [7000, "Tap Interact to gather · the backpack button opens your journal & crafting."],
+                [13000, "Goal: repair the broken raft on this shore to escape the isle."],
+            ]
+            : [
+                [1500, "You wash ashore. Move with WASD — hold Shift to sprint."],
+                [7000, "Left-click to gather · E or Tab opens your journal & crafting."],
+                [13000, "Goal: repair the broken raft on this shore to escape the isle."],
+            ];
         for (const [delay, text] of hints) {
             window.setTimeout(() => this.showNotification(text, "info"), delay);
         }
@@ -294,38 +309,21 @@ export class HUD {
         return "info";
     }
 
-    public showInteractionPrompt(text: string): void {
-        const el = document.getElementById("interactionPrompt");
-        if (el) {
-            el.innerHTML = text;
-            el.style.opacity = "1";
-        }
-    }
-
-    public hideInteractionPrompt(): void {
-        const el = document.getElementById("interactionPrompt");
-        if (el) el.style.opacity = "0";
-    }
-
     public showVictory(): void {
-        const el = document.getElementById("victoryScreen");
-        if (el) el.style.display = "flex";
         this._dismissMenus();
+        MenuManager.showEndScreen("victoryScreen");
         document.body.classList.add("run-ended");
         document.exitPointerLock();
     }
 
     public showGameOver(): void {
-        const el = document.getElementById("gameOverScreen");
-        if (el) el.style.display = "flex";
         this._dismissMenus();
+        MenuManager.showEndScreen("gameOverScreen");
         document.body.classList.add("run-ended");
         document.exitPointerLock();
     }
 
     private _dismissMenus(): void {
-        const escMenu = document.getElementById("escMenu");
-        if (escMenu) escMenu.style.display = "none";
-        document.getElementById("craftingMenu")?.classList.remove("active");
+        MenuManager.dismissGameplayMenus();
     }
 }

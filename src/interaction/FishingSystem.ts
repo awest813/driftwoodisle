@@ -8,6 +8,7 @@ import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import type { Scene } from "@babylonjs/core/scene";
 import { SoundManager } from "../game/SoundManager";
 import { isGameplayActive } from "../game/GameState";
+import { InputCopy } from "../ui/InputCopy";
 
 type FishingState = "idle" | "waiting" | "bite";
 
@@ -148,7 +149,7 @@ export class FishingSystem {
         this._bobber.position.y = this._bobberBaseY;
         this._rippleT = 0; // splash ring right as the bite hits
         SoundManager.instance?.play("fish");
-        this._hud.showNotification("Bite! Right-click to reel!");
+        this._hud.showNotification(InputCopy.reelPrompt());
         this._missTimer = window.setTimeout(() => this._missCheck(), 2500);
     }
 

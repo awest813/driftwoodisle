@@ -5,6 +5,7 @@ import { Scalar } from "@babylonjs/core/Maths/math.scalar";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Scene } from "@babylonjs/core/scene";
 import { SoundManager } from "../game/SoundManager";
+import { MenuManager } from "../ui/MenuManager";
 
 export class PlayerController {
     private _scene: Scene;
@@ -178,7 +179,8 @@ export class PlayerController {
             if (e.defaultPrevented) return;
 
             if (e.code === "Escape") {
-                this._showPauseMenu();
+                if (e.defaultPrevented) return;
+                MenuManager.togglePause();
                 return;
             }
 
@@ -218,20 +220,7 @@ export class PlayerController {
     }
 
     private _showPauseMenu(): void {
-        const victoryMenu = document.getElementById("victoryScreen");
-        const gameOverMenu = document.getElementById("gameOverScreen");
-        const isGameOver = (victoryMenu && victoryMenu.style.display === "flex") ||
-                           (gameOverMenu && gameOverMenu.style.display === "flex");
-        if (isGameOver) return;
-
-        const craftingMenu = document.getElementById("craftingMenu");
-        if (craftingMenu?.classList.contains("active")) return;
-
-        const escMenu = document.getElementById("escMenu");
-        if (escMenu) escMenu.style.display = "flex";
-        if (document.pointerLockElement === this._canvas) {
-            document.exitPointerLock();
-        }
+        MenuManager.showPause();
     }
 
     private _setupPointerLock(): void {
@@ -250,29 +239,18 @@ export class PlayerController {
         });
 
         document.addEventListener('pointerlockchange', () => {
-            const escMenu = document.getElementById("escMenu");
-            const craftingMenu = document.getElementById("craftingMenu");
-
             if (document.pointerLockElement === this._canvas) {
                 this._hasEnteredPointerLock = true;
                 this._camera.detachControl();
                 this._camera.attachControl(this._canvas, true);
-                if (escMenu) escMenu.style.display = "none";
-                craftingMenu?.classList.remove("active");
+                MenuManager.hidePause();
+                document.getElementById("craftingMenu")?.classList.remove("active");
             } else if (this._hasEnteredPointerLock && !this._mobileMode) {
                 this._pressedKeys.clear();
                 this._camera.detachControl();
 
-                // Only show pause menu if crafting menu is not open
-                const isCraftingOpen = craftingMenu && craftingMenu.classList.contains("active");
-
-                const victoryMenu = document.getElementById("victoryScreen");
-                const gameOverMenu = document.getElementById("gameOverScreen");
-                const isGameOver = (victoryMenu && victoryMenu.style.display === "flex") ||
-                                   (gameOverMenu && gameOverMenu.style.display === "flex");
-
-                if (!isCraftingOpen && !isGameOver) {
-                    if (escMenu) escMenu.style.display = "flex";
+                if (!MenuManager.isCraftingOpen() && !MenuManager.isEndScreenOpen() && !MenuManager.isSettingsOpen()) {
+                    MenuManager.showPause();
                 }
             }
         }, false);
@@ -297,18 +275,7 @@ export class PlayerController {
 
     private _canRequestPointerLock(): boolean {
         if (this._mobileMode) return false;
-        const mainMenu = document.getElementById("mainMenu");
-        const escMenu = document.getElementById("escMenu");
-        const craftingMenu = document.getElementById("craftingMenu");
-        const victoryMenu = document.getElementById("victoryScreen");
-        const gameOverMenu = document.getElementById("gameOverScreen");
-
-        const isMainMenuOpen = mainMenu ? mainMenu.style.display !== "none" : false;
-        const isPauseOpen = escMenu ? escMenu.style.display === "flex" : false;
-        const isCraftingOpen = craftingMenu?.classList.contains("active") ?? false;
-        const isGameOver = (victoryMenu?.style.display === "flex") || (gameOverMenu?.style.display === "flex");
-
-        return !isMainMenuOpen && !isPauseOpen && !isCraftingOpen && !isGameOver;
+        return MenuManager.canRequestPointerLock();
     }
 
     public get camera(): FreeCamera {

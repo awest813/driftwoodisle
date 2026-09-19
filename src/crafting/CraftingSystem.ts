@@ -10,6 +10,8 @@ import { ITEMS, CATEGORY_LABELS, CATEGORY_ORDER, itemDef } from "../inventory/It
 import type { ItemCategory } from "../inventory/ItemRegistry";
 import { consumeItem } from "../inventory/Consume";
 import { itemIconHtml } from "../ui/ItemIcon";
+import { MenuManager } from "../ui/MenuManager";
+import { InputCopy } from "../ui/InputCopy";
 
 export class CraftingSystem {
     private _inventory: Inventory;
@@ -50,14 +52,15 @@ export class CraftingSystem {
     private _setupInput(): void {
         window.addEventListener("keydown", (e) => {
             // Once the run has ended (victory/game over) the journal stays closed.
-            if (document.body.classList.contains("run-ended")) return;
+            if (MenuManager.isRunEnded()) return;
             if (e.code === "KeyE" || e.code === "Tab") {
                 e.preventDefault();
-                this._hidePauseMenu();
+                MenuManager.hidePause();
                 this.toggle();
             }
             if (e.code === "Escape" && this._isOpen) {
                 e.preventDefault();
+                e.stopPropagation();
                 this.close();
             }
         });
@@ -75,16 +78,23 @@ export class CraftingSystem {
         }
     }
 
+    private _canOpenCrafting(): boolean {
+        if (MenuManager.isMainMenuOpen() || MenuManager.isLoadingOpen()) return false;
+        if (MenuManager.isRunEnded() || MenuManager.isEndScreenOpen()) return false;
+        return true;
+    }
+
     public toggle(): void {
         if (this._isOpen) this.close();
         else this.open();
     }
 
     public open(): void {
+        if (!this._canOpenCrafting()) return;
         if (this._menuElement) {
             SoundManager.instance?.play("menu");
-            this._hidePauseMenu();
-            this._menuElement.classList.add("active");
+            MenuManager.hidePause();
+            MenuManager.showCrafting();
             this._isOpen = true;
             this._renderRecipes();
             document.exitPointerLock(); // Allow mouse interaction
@@ -94,10 +104,10 @@ export class CraftingSystem {
     public close(): void {
         if (this._menuElement) {
             SoundManager.instance?.play("menu");
-            this._menuElement.classList.remove("active");
+            MenuManager.hideCrafting();
             this._isOpen = false;
             const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement | null;
-            if (!canvas || !this._canReturnToPointerLock()) return;
+            if (!canvas || !MenuManager.canRequestPointerLock()) return;
 
             canvas?.focus({ preventScroll: true });
             try {
@@ -109,24 +119,6 @@ export class CraftingSystem {
                 // Browsers may reject pointer lock when closing from a keyboard shortcut.
             }
         }
-    }
-
-    private _canReturnToPointerLock(): boolean {
-        const mainMenu = document.getElementById("mainMenu");
-        const escMenu = document.getElementById("escMenu");
-        const victoryMenu = document.getElementById("victoryScreen");
-        const gameOverMenu = document.getElementById("gameOverScreen");
-
-        const isMainMenuOpen = mainMenu ? mainMenu.style.display !== "none" : false;
-        const isPauseOpen = escMenu ? escMenu.style.display === "flex" : false;
-        const isGameOver = (victoryMenu?.style.display === "flex") || (gameOverMenu?.style.display === "flex");
-
-        return !isMainMenuOpen && !isPauseOpen && !isGameOver;
-    }
-
-    private _hidePauseMenu(): void {
-        const escMenu = document.getElementById("escMenu");
-        if (escMenu) escMenu.style.display = "none";
     }
 
     private _renderRecipes(): void {
@@ -234,12 +226,18 @@ export class CraftingSystem {
                     const def = itemDef(type)!;
                     const isEdible = !!def.food;
 
-                    const consumeLabel = def.food?.consumeLabel || "Click to eat";
-                    const itemEl = document.createElement("div");
-                    itemEl.className = "recipe-item inv-item" + (isEdible ? " edible" : "");
-                    itemEl.title = isEdible
-                        ? `${def.name} — ${consumeLabel.toLowerCase()}`
-                        : def.name;
+                    const consumeLabel = InputCopy.formatConsumeLabel(
+                        def.food?.consumeLabel || "Click to eat"
+                    );
+                    const itemEl = document.createElement(isEdible ? "button" : "div");
+                    itemEl.className = "recipe-item inv-item" + (isEdible ? " edible inv-eat-btn" : "");
+                    if (isEdible) {
+                        (itemEl as HTMLButtonElement).type = "button";
+                        itemEl.title = `${def.name} — ${consumeLabel.toLowerCase()}`;
+                        itemEl.addEventListener("click", () => this._eatItem(type));
+                    } else {
+                        itemEl.title = def.name;
+                    }
                     itemEl.innerHTML = `
                         <div class="inv-item-row">
                             <span class="inv-icon">${itemIconHtml(type, "item-icon item-icon--inv")}</span>
@@ -248,11 +246,6 @@ export class CraftingSystem {
                         </div>
                         ${isEdible ? `<div class="inv-hint">${consumeLabel}</div>` : ''}
                     `;
-
-                    if (isEdible) {
-                        itemEl.style.cursor = "pointer";
-                        itemEl.onclick = () => this._eatItem(type);
-                    }
 
                     invGrid.appendChild(itemEl);
                 });

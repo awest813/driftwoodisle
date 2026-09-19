@@ -5,6 +5,7 @@ import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Interactable } from "./Interactable";
 import { SoundManager } from "../game/SoundManager";
+import { InputCopy } from "../ui/InputCopy";
 
 export class InteractionSystem {
     private _scene: Scene;
@@ -191,14 +192,14 @@ export class InteractionSystem {
 
         const actionElement = document.createElement("span");
         actionElement.className = "interaction-action";
-        actionElement.textContent = "Click - Attack";
+        actionElement.textContent = InputCopy.attackAction();
 
         this._promptElement.append(nameElement, actionElement);
         this._promptElement.style.opacity = "1";
     }
 
     private _formatPromptAction(interactable: Interactable): string {
-        let action = interactable.prompt.replace(/\[Click\]\s*/i, "Click - ");
+        let action = InputCopy.formatInteractPrompt(interactable.prompt);
         const escapedName = interactable.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         action = action.replace(new RegExp(`\\s+${escapedName}$`, "i"), "");
         return action;

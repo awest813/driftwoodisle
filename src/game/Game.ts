@@ -4,6 +4,9 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
+import { MenuManager } from "../ui/MenuManager";
+import { MainMenu } from "../ui/MainMenu";
+import { LoadingScreen } from "../ui/LoadingScreen";
 
 export class Game {
     private _canvas: HTMLCanvasElement;
@@ -24,6 +27,7 @@ export class Game {
     private _combat: any;
     private _mobileControls: any;
     private _island: any;
+    private _autosaveInterval: number | null = null;
 
     public get island() { return this._island; }
 
@@ -108,8 +112,7 @@ export class Game {
         this._exposeTestHooks();
     }
 
-    private async _setupMenu(): Promise<void> {
-        const { MainMenu } = await import("../ui/MainMenu");
+    private _setupMenu(): void {
         new MainMenu((isLoad) => this._startGame(isLoad));
     }
 
@@ -117,8 +120,6 @@ export class Game {
         if (this._isStarting || this._playerController) return;
         this._isStarting = true;
         try {
-            const { LoadingScreen } = await import("../ui/LoadingScreen");
-
             // Wait for the world to finish generating so player doesn't fall
             await LoadingScreen.step("Shaping the island terrain", 0.18, async () => {
                 await this._worldPromise;
@@ -147,7 +148,7 @@ export class Game {
                 await LoadingScreen.step("Reading the old journal", 0.82, () => {
                     SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud, this._buildingSystem);
                 });
-                this._hud.showNotification("Game Loaded");
+                this._hud.showNotification("Journal recovered.");
             }
 
             const { SettingsManager } = await import("../save/SettingsManager");
@@ -239,7 +240,7 @@ export class Game {
 
         // Auto-save every 30 seconds. Silent — the clock box pulses briefly
         // instead of a toast, so the notification feed stays for real events.
-        setInterval(() => {
+        this._autosaveInterval = window.setInterval(() => {
             if (this._playerController) {
                 SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud, this._buildingSystem);
                 this._hud.flashSaved();
@@ -276,15 +277,15 @@ export class Game {
         const resumeBtn = document.getElementById("resumeBtn");
         const saveBtn = document.getElementById("saveBtn");
         const loadBtn = document.getElementById("loadInGameBtn");
+        const pauseSettingsBtn = document.getElementById("pauseSettingsBtn");
         const exitBtn = document.getElementById("exitBtn");
+        const escMenu = document.getElementById("escMenu");
 
-        if (resumeBtn) resumeBtn.onclick = () => {
-            this._resumeGameplay();
-        };
+        if (resumeBtn) resumeBtn.onclick = () => this._resumeGameplay();
         if (saveBtn) saveBtn.onclick = () => {
             import("../save/SaveSystem").then(({ SaveSystem }) => {
                 SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud, this._buildingSystem);
-                this._hud.showNotification("Game Saved manually.");
+                this._hud.showNotification("Journal saved.");
                 this._resumeGameplay();
             });
         };
@@ -292,14 +293,98 @@ export class Game {
             import("../save/SaveSystem").then(({ SaveSystem }) => {
                 if (SaveSystem.hasSave()) {
                     SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud, this._buildingSystem);
-                    this._hud.showNotification("Game Loaded manually.");
+                    this._hud.showNotification("Journal recovered.");
                     this._resumeGameplay();
                 } else {
-                    this._hud.showNotification("No save found.");
+                    this._hud.showNotification("No journal entries found.");
                 }
             });
         };
-        if (exitBtn) exitBtn.onclick = () => location.reload();
+        MainMenu.refreshSavePreview();
+        if (pauseSettingsBtn) pauseSettingsBtn.onclick = () => MenuManager.showSettings("pause");
+        if (exitBtn) exitBtn.onclick = () => this.returnToMainMenu();
+        if (escMenu) {
+            escMenu.addEventListener("mousedown", (e) => {
+                if (e.target === escMenu) this._resumeGameplay();
+            });
+        }
+
+        const victoryBtn = document.getElementById("victoryRestartBtn");
+        const gameOverBtn = document.getElementById("gameOverRestartBtn");
+        if (victoryBtn) victoryBtn.onclick = () => this.returnToMainMenu();
+        if (gameOverBtn) gameOverBtn.onclick = () => this.returnToMainMenu();
+    }
+
+    public returnToMainMenu(): void {
+        if (!this._playerController) {
+            MenuManager.prepareReturnToMainMenu();
+            MainMenu.prepareForReturn();
+            return;
+        }
+
+        MenuManager.prepareReturnToMainMenu();
+        this._teardownRun();
+        MainMenu.prepareForReturn();
+    }
+
+    private _teardownRun(): void {
+        if (this._autosaveInterval !== null) {
+            window.clearInterval(this._autosaveInterval);
+            this._autosaveInterval = null;
+        }
+
+        this._stats?.dispose?.();
+        this._playerController?.camera?.dispose?.();
+
+        const keep = new Set(["skyDome", "ocean"]);
+        for (const mesh of [...this._scene.meshes]) {
+            if (!keep.has(mesh.name)) mesh.dispose();
+        }
+        for (const ps of [...this._scene.particleSystems]) {
+            ps.dispose();
+        }
+
+        this._scene.activeCamera = null;
+        this._resetHudDisplay();
+
+        this._playerController = null;
+        this._inventory = null;
+        this._stats = null;
+        this._hud = null;
+        this._dayNight = null;
+        this._weather = null;
+        this._fishing = null;
+        this._craftingSystem = null;
+        this._buildingSystem = null;
+        this._interactionSystem = null;
+        this._combat = null;
+        this._mobileControls = null;
+        this._island = null;
+    }
+
+    private _resetHudDisplay(): void {
+        for (const key of ["health", "hunger", "thirst", "stamina", "warmth"]) {
+            const bar = document.getElementById(`${key}Bar`);
+            if (bar) bar.style.width = "100%";
+            const val = document.getElementById(`${key}Val`);
+            if (val) val.textContent = "100";
+        }
+        const day = document.getElementById("dayCount");
+        if (day) day.textContent = "1";
+        const clock = document.getElementById("timeClock");
+        if (clock) clock.textContent = "08:00";
+        const wIcon = document.getElementById("warmthIcon");
+        if (wIcon) {
+            wIcon.innerHTML = `<svg class="item-icon stat-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-stat-warmth"></use></svg>`;
+        }
+        document.querySelectorAll(".hotbar-slot").forEach((slot) => {
+            slot.querySelector(".slot-icon")?.remove();
+            const qty = slot.querySelector(".slot-qty");
+            if (qty) qty.textContent = "";
+            (slot as HTMLElement).removeAttribute("data-item");
+            (slot as HTMLElement).removeAttribute("title");
+            (slot as HTMLElement).setAttribute("aria-label", `Empty slot ${(slot as HTMLElement).id.replace("slot-", "")}`);
+        });
     }
 
     public get scene(): Scene {
@@ -311,10 +396,8 @@ export class Game {
     }
 
     private _resumeGameplay(): void {
-        const escMenu = document.getElementById("escMenu");
-        const craftingMenu = document.getElementById("craftingMenu");
-        if (escMenu) escMenu.style.display = "none";
-        craftingMenu?.classList.remove("active");
+        MenuManager.hidePause();
+        document.getElementById("craftingMenu")?.classList.remove("active");
         this._requestGameplayPointerLock();
     }
 

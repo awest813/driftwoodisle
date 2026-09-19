@@ -1,4 +1,5 @@
 import type { GameSettings, TouchControlsMode } from "../save/SettingsManager";
+import { MenuManager } from "./MenuManager";
 
 export class MobileControls {
     private _container: HTMLElement;
@@ -115,20 +116,7 @@ export class MobileControls {
             return;
         }
 
-        const mainMenu = document.getElementById("mainMenu");
-        const escMenu = document.getElementById("escMenu");
-        const craftingMenu = document.getElementById("craftingMenu");
-        const victoryMenu = document.getElementById("victoryScreen");
-        const gameOverMenu = document.getElementById("gameOverScreen");
-        const loadingScreen = document.getElementById("loadingScreen");
-
-        const isMainMenuOpen = mainMenu ? mainMenu.style.display !== "none" : false;
-        const isPauseOpen = escMenu ? escMenu.style.display === "flex" : false;
-        const isCraftingOpen = craftingMenu?.classList.contains("active") ?? false;
-        const isGameOver = (victoryMenu?.style.display === "flex") || (gameOverMenu?.style.display === "flex");
-        const isLoading = loadingScreen?.style.display === "flex";
-
-        const shouldShow = !isMainMenuOpen && !isPauseOpen && !isCraftingOpen && !isGameOver && !isLoading;
+        const shouldShow = !MenuManager.isAnyMenuOpen() && !MenuManager.isEndScreenOpen();
         this._container.style.display = shouldShow ? "block" : "none";
 
         if (!shouldShow) {

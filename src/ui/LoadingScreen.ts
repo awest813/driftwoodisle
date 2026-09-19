@@ -7,6 +7,7 @@ export class LoadingScreen {
         const el = this._el();
         if (!el) return;
         el.style.display = "flex";
+        el.setAttribute("aria-busy", "true");
         // Keep the HUD/crosshair hidden until the world is ready to play.
         document.body.classList.add("is-loading");
         this.setStatus(initialStatus);
@@ -25,6 +26,7 @@ export class LoadingScreen {
             el.style.display = "none";
             el.style.opacity = "1";
             el.style.transition = "";
+            el.setAttribute("aria-busy", "false");
             document.body.classList.remove("is-loading");
         }, 260);
     }
@@ -35,8 +37,11 @@ export class LoadingScreen {
     }
 
     public static setProgress(fraction: number): void {
+        const clamped = Math.max(0, Math.min(1, fraction));
         const bar = document.getElementById("loadingBar");
-        if (bar) bar.style.width = `${Math.max(0, Math.min(1, fraction)) * 100}%`;
+        if (bar) bar.style.width = `${clamped * 100}%`;
+        const progress = document.querySelector<HTMLElement>(".loading-bar-bg");
+        if (progress) progress.setAttribute("aria-valuenow", Math.round(clamped * 100).toString());
     }
 
     public static async step(status: string, fraction: number, task?: () => Promise<void> | void): Promise<void> {
