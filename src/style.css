@@ -1277,12 +1277,6 @@ body.run-ended #mobileControls {
     transition: width 0.35s ease;
 }
 
-.overlay h1 {
-    font-size: 2.6rem;
-    margin: 0 0 14px;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-}
 .overlay p {
     font-size: 1.1rem;
     margin: 0 auto 32px;
@@ -1318,7 +1312,6 @@ body.run-ended #mobileControls {
         padding: calc(16px + env(safe-area-inset-top, 0px)) 0 calc(16px + env(safe-area-inset-bottom, 0px));
     }
 
-    .overlay h1 { font-size: 2rem; letter-spacing: 2px; }
     .overlay p { font-size: 1rem; margin-bottom: 24px; }
     .overlay-content { padding: 32px 24px; border-width: 10px; }
     .overlay button { padding: 12px 20px; font-size: 1rem; letter-spacing: 1px; }
@@ -1474,9 +1467,24 @@ body.run-ended #mobileControls {
     transition: transform 0.1s, background 0.1s;
 }
 
-.inv-item.edible:hover {
+button.inv-eat-btn {
+    width: 100%;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    appearance: none;
+}
+
+.inv-item.edible:hover,
+.inv-item.edible:focus-visible {
     background: rgba(120, 80, 40, 0.15);
     transform: translate(-1px, -1px);
+}
+
+button.inv-eat-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
 .inv-item-row {
@@ -1875,6 +1883,12 @@ body.mobile-active #interactionPrompt[style*="opacity: 1"] {
 .mc-icon-btn:active {
     background: rgba(139, 69, 19, 0.85);
     transform: scale(0.92);
+}
+
+.mc-icon-btn:focus-visible,
+.mc-action-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
 #mc-lookpad {

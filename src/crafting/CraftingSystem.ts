@@ -11,6 +11,7 @@ import type { ItemCategory } from "../inventory/ItemRegistry";
 import { consumeItem } from "../inventory/Consume";
 import { itemIconHtml } from "../ui/ItemIcon";
 import { MenuManager } from "../ui/MenuManager";
+import { InputCopy } from "../ui/InputCopy";
 
 export class CraftingSystem {
     private _inventory: Inventory;
@@ -225,12 +226,18 @@ export class CraftingSystem {
                     const def = itemDef(type)!;
                     const isEdible = !!def.food;
 
-                    const consumeLabel = def.food?.consumeLabel || "Click to eat";
-                    const itemEl = document.createElement("div");
-                    itemEl.className = "recipe-item inv-item" + (isEdible ? " edible" : "");
-                    itemEl.title = isEdible
-                        ? `${def.name} — ${consumeLabel.toLowerCase()}`
-                        : def.name;
+                    const consumeLabel = InputCopy.formatConsumeLabel(
+                        def.food?.consumeLabel || "Click to eat"
+                    );
+                    const itemEl = document.createElement(isEdible ? "button" : "div");
+                    itemEl.className = "recipe-item inv-item" + (isEdible ? " edible inv-eat-btn" : "");
+                    if (isEdible) {
+                        (itemEl as HTMLButtonElement).type = "button";
+                        itemEl.title = `${def.name} — ${consumeLabel.toLowerCase()}`;
+                        itemEl.addEventListener("click", () => this._eatItem(type));
+                    } else {
+                        itemEl.title = def.name;
+                    }
                     itemEl.innerHTML = `
                         <div class="inv-item-row">
                             <span class="inv-icon">${itemIconHtml(type, "item-icon item-icon--inv")}</span>
@@ -239,11 +246,6 @@ export class CraftingSystem {
                         </div>
                         ${isEdible ? `<div class="inv-hint">${consumeLabel}</div>` : ''}
                     `;
-
-                    if (isEdible) {
-                        itemEl.style.cursor = "pointer";
-                        itemEl.onclick = () => this._eatItem(type);
-                    }
 
                     invGrid.appendChild(itemEl);
                 });

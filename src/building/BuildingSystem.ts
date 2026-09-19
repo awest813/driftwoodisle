@@ -12,6 +12,7 @@ import type { Scene } from "@babylonjs/core/scene";
 import { HUD } from "../ui/HUD";
 import type { Interactable } from "../interaction/Interactable";
 import { SoundManager } from "../game/SoundManager";
+import { InputCopy } from "../ui/InputCopy";
 
 export class BuildingSystem {
     private _scene: Scene;
@@ -83,7 +84,7 @@ export class BuildingSystem {
         this._rotationAngle = 0;
         this._ghostValid = true;
         SoundManager.instance?.play("menu");
-        this._hud.showNotification(`Building mode: Place ${type}. Click to place, R to rotate, ESC to cancel.`);
+        this._hud.showNotification(InputCopy.buildingModeHint(type));
 
         // The ghost is built from the same parts and real materials as the
         // finished structure, then made translucent and tinted with the
