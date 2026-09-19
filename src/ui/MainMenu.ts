@@ -11,6 +11,8 @@ const HERO_BLURBS = [
 ];
 
 export class MainMenu {
+    private static _instance: MainMenu | null = null;
+
     private _menuElement: HTMLElement | null;
     private _onStart: (isLoad: boolean) => Promise<void> | void;
     private _isStarting: boolean = false;
@@ -19,10 +21,45 @@ export class MainMenu {
     constructor(onStart: (isLoad: boolean) => Promise<void> | void) {
         this._menuElement = document.getElementById("mainMenu");
         this._onStart = onStart;
+        MainMenu._instance = this;
 
         this._setupButtons();
         this._setupHero();
         this._setupKeyboard();
+    }
+
+    /** Restore the title screen after exiting a run without reloading. */
+    public static prepareForReturn(): void {
+        MainMenu._instance?._resetToHero();
+        MainMenu.refreshSavePreview();
+    }
+
+    public static refreshSavePreview(): void {
+        const loadBtn = document.getElementById("loadGame") as HTMLButtonElement | null;
+        const continueSub = document.getElementById("continueSub");
+        if (!loadBtn) return;
+
+        const preview = SaveSystem.getSavePreview();
+        if (preview && SaveSystem.hasSave()) {
+            loadBtn.disabled = false;
+            loadBtn.onclick = () => MainMenu._instance?._start(true);
+            if (continueSub) continueSub.textContent = `Day ${preview.day} · resume your journal`;
+        } else {
+            loadBtn.disabled = true;
+            if (continueSub) continueSub.textContent = "No saved entries";
+        }
+    }
+
+    private _resetToHero(): void {
+        this._isStarting = false;
+        this._currentScreen = "menuContent";
+        if (this._menuElement) this._menuElement.style.display = "flex";
+        document.getElementById("menuContent")!.style.display = "block";
+        for (const page of this._menuElement?.querySelectorAll(".journal-page") ?? []) {
+            const el = page as HTMLElement;
+            if (el.id !== "menuContent") el.style.display = "none";
+        }
+        this._setStartingState(false);
     }
 
     private _setupHero(): void {
@@ -207,6 +244,7 @@ export class MainMenu {
         try {
             await this._onStart(isLoad);
             LoadingScreen.hide();
+            this._isStarting = false;
             this._setStartingState(false);
         } catch (error) {
             console.error("Failed to start game", error);

@@ -77,16 +77,23 @@ export class CraftingSystem {
         }
     }
 
+    private _canOpenCrafting(): boolean {
+        if (MenuManager.isMainMenuOpen() || MenuManager.isLoadingOpen()) return false;
+        if (MenuManager.isRunEnded() || MenuManager.isEndScreenOpen()) return false;
+        return true;
+    }
+
     public toggle(): void {
         if (this._isOpen) this.close();
         else this.open();
     }
 
     public open(): void {
+        if (!this._canOpenCrafting()) return;
         if (this._menuElement) {
             SoundManager.instance?.play("menu");
             MenuManager.hidePause();
-            this._menuElement.classList.add("active");
+            MenuManager.showCrafting();
             this._isOpen = true;
             this._renderRecipes();
             document.exitPointerLock(); // Allow mouse interaction
@@ -96,7 +103,7 @@ export class CraftingSystem {
     public close(): void {
         if (this._menuElement) {
             SoundManager.instance?.play("menu");
-            this._menuElement.classList.remove("active");
+            MenuManager.hideCrafting();
             this._isOpen = false;
             const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement | null;
             if (!canvas || !MenuManager.canRequestPointerLock()) return;

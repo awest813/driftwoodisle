@@ -5,6 +5,7 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { MenuManager } from "../ui/MenuManager";
+import { MainMenu } from "../ui/MainMenu";
 
 export class Game {
     private _canvas: HTMLCanvasElement;
@@ -25,6 +26,7 @@ export class Game {
     private _combat: any;
     private _mobileControls: any;
     private _island: any;
+    private _autosaveInterval: number | null = null;
 
     public get island() { return this._island; }
 
@@ -109,8 +111,7 @@ export class Game {
         this._exposeTestHooks();
     }
 
-    private async _setupMenu(): Promise<void> {
-        const { MainMenu } = await import("../ui/MainMenu");
+    private _setupMenu(): void {
         new MainMenu((isLoad) => this._startGame(isLoad));
     }
 
@@ -240,7 +241,7 @@ export class Game {
 
         // Auto-save every 30 seconds. Silent — the clock box pulses briefly
         // instead of a toast, so the notification feed stays for real events.
-        setInterval(() => {
+        this._autosaveInterval = window.setInterval(() => {
             if (this._playerController) {
                 SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud, this._buildingSystem);
                 this._hud.flashSaved();
@@ -301,7 +302,7 @@ export class Game {
             });
         };
         if (pauseSettingsBtn) pauseSettingsBtn.onclick = () => MenuManager.showSettings("pause");
-        if (exitBtn) exitBtn.onclick = () => location.reload();
+        if (exitBtn) exitBtn.onclick = () => this.returnToMainMenu();
         if (escMenu) {
             escMenu.addEventListener("mousedown", (e) => {
                 if (e.target === escMenu) this._resumeGameplay();
@@ -310,8 +311,68 @@ export class Game {
 
         const victoryBtn = document.getElementById("victoryRestartBtn");
         const gameOverBtn = document.getElementById("gameOverRestartBtn");
-        if (victoryBtn) victoryBtn.onclick = () => location.reload();
-        if (gameOverBtn) gameOverBtn.onclick = () => location.reload();
+        if (victoryBtn) victoryBtn.onclick = () => this.returnToMainMenu();
+        if (gameOverBtn) gameOverBtn.onclick = () => this.returnToMainMenu();
+    }
+
+    public returnToMainMenu(): void {
+        if (!this._playerController) {
+            MenuManager.prepareReturnToMainMenu();
+            MainMenu.prepareForReturn();
+            return;
+        }
+
+        MenuManager.prepareReturnToMainMenu();
+        this._teardownRun();
+        MainMenu.prepareForReturn();
+    }
+
+    private _teardownRun(): void {
+        if (this._autosaveInterval !== null) {
+            window.clearInterval(this._autosaveInterval);
+            this._autosaveInterval = null;
+        }
+
+        this._stats?.dispose?.();
+        this._playerController?.camera?.dispose?.();
+
+        const keep = new Set(["skyDome", "ocean"]);
+        for (const mesh of [...this._scene.meshes]) {
+            if (!keep.has(mesh.name)) mesh.dispose();
+        }
+        for (const ps of [...this._scene.particleSystems]) {
+            ps.dispose();
+        }
+
+        this._scene.activeCamera = null;
+        this._resetHudDisplay();
+
+        this._playerController = null;
+        this._inventory = null;
+        this._stats = null;
+        this._hud = null;
+        this._dayNight = null;
+        this._weather = null;
+        this._fishing = null;
+        this._craftingSystem = null;
+        this._buildingSystem = null;
+        this._interactionSystem = null;
+        this._combat = null;
+        this._mobileControls = null;
+        this._island = null;
+    }
+
+    private _resetHudDisplay(): void {
+        for (const key of ["health", "hunger", "thirst", "stamina", "warmth"]) {
+            const bar = document.getElementById(`${key}Bar`);
+            if (bar) bar.style.width = "100%";
+            const val = document.getElementById(`${key}Val`);
+            if (val) val.textContent = "100";
+        }
+        const day = document.getElementById("dayCount");
+        if (day) day.textContent = "1";
+        const clock = document.getElementById("timeClock");
+        if (clock) clock.textContent = "08:00";
     }
 
     public get scene(): Scene {

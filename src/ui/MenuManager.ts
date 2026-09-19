@@ -2,9 +2,14 @@ import { SoundManager } from "../game/SoundManager";
 
 export type SettingsReturnTarget = "main" | "pause" | null;
 
+const FOCUSABLE = 'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
+
 /** Central visibility and input routing for all blocking overlays. */
 export class MenuManager {
     private static _settingsReturn: SettingsReturnTarget = null;
+    private static _trapContainer: HTMLElement | null = null;
+    private static _trapHandler: ((e: KeyboardEvent) => void) | null = null;
+    private static _previousFocus: HTMLElement | null = null;
 
     static isRunEnded(): boolean {
         return document.body.classList.contains("run-ended");
@@ -72,13 +77,14 @@ export class MenuManager {
         if (!el || el.style.display === "flex") return;
         el.style.display = "flex";
         SoundManager.instance?.play("menu");
-        this._focusFirstButton(el);
+        this._openOverlay(el);
         document.exitPointerLock();
     }
 
     static hidePause(): void {
         const el = document.getElementById("escMenu");
         if (el) el.style.display = "none";
+        if (this._trapContainer === el) this.deactivateFocusTrap();
     }
 
     static togglePause(): void {
@@ -102,13 +108,14 @@ export class MenuManager {
         this._settingsReturn = returnTo;
         overlay.style.display = "flex";
         SoundManager.instance?.play("menu");
-        this._focusFirstButton(overlay);
+        this._openOverlay(overlay);
         if (returnTo === "pause") this.hidePause();
     }
 
     static hideSettings(): void {
         const overlay = document.getElementById("settingsOverlay");
         if (overlay) overlay.style.display = "none";
+        if (this._trapContainer === overlay) this.deactivateFocusTrap();
         const target = this._settingsReturn;
         this._settingsReturn = null;
         if (target === "pause") this.showPause();
@@ -120,13 +127,98 @@ export class MenuManager {
 
     static dismissGameplayMenus(): void {
         this.hidePause();
-        document.getElementById("craftingMenu")?.classList.remove("active");
+        this.hideCrafting();
         this.hideSettings();
     }
 
-    private static _focusFirstButton(container: HTMLElement): void {
+    static showCrafting(): void {
+        const el = document.getElementById("craftingMenu");
+        if (!el) return;
+        el.classList.add("active");
+        this._openOverlay(el);
+    }
+
+    static hideCrafting(): void {
+        const el = document.getElementById("craftingMenu");
+        if (el) el.classList.remove("active");
+        if (this._trapContainer === el) this.deactivateFocusTrap();
+    }
+
+    static showEndScreen(id: "victoryScreen" | "gameOverScreen"): void {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.display = "flex";
+        this._openOverlay(el);
+    }
+
+    static hideEndScreens(): void {
+        for (const id of ["victoryScreen", "gameOverScreen"] as const) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = "none";
+        }
+        if (this._trapContainer?.id === "victoryScreen" || this._trapContainer?.id === "gameOverScreen") {
+            this.deactivateFocusTrap();
+        }
+    }
+
+    static showMainMenu(): void {
+        const menu = document.getElementById("mainMenu");
+        if (menu) menu.style.display = "flex";
+    }
+
+    static hideMainMenu(): void {
+        const menu = document.getElementById("mainMenu");
+        if (menu) menu.style.display = "none";
+    }
+
+    /** Reset all overlay UI before returning to the title screen. */
+    static prepareReturnToMainMenu(): void {
+        document.exitPointerLock();
+        this.dismissGameplayMenus();
+        this.hideEndScreens();
+        this.hideSettings();
+        document.body.classList.remove("run-ended", "is-loading");
+        document.getElementById("notifications")!.innerHTML = "";
+        this.showMainMenu();
+    }
+
+    static activateFocusTrap(container: HTMLElement): void {
+        this.deactivateFocusTrap();
+        this._previousFocus = document.activeElement as HTMLElement | null;
+        this._trapContainer = container;
+        this._trapHandler = (e: KeyboardEvent) => {
+            if (e.key !== "Tab" || !this._trapContainer) return;
+            const nodes = Array.from(
+                this._trapContainer.querySelectorAll<HTMLElement>(FOCUSABLE)
+            ).filter(el => el.offsetParent !== null);
+            if (nodes.length === 0) return;
+            const first = nodes[0];
+            const last = nodes[nodes.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus({ preventScroll: true });
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus({ preventScroll: true });
+            }
+        };
+        document.addEventListener("keydown", this._trapHandler);
+    }
+
+    static deactivateFocusTrap(): void {
+        if (this._trapHandler) {
+            document.removeEventListener("keydown", this._trapHandler);
+            this._trapHandler = null;
+        }
+        this._trapContainer = null;
+        this._previousFocus?.focus?.({ preventScroll: true });
+        this._previousFocus = null;
+    }
+
+    private static _openOverlay(container: HTMLElement): void {
         const btn = container.querySelector<HTMLButtonElement>("button:not(:disabled)");
         btn?.focus({ preventScroll: true });
+        this.activateFocusTrap(container);
     }
 
     private static _requestPointerLock(): void {

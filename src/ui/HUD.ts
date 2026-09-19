@@ -302,17 +302,15 @@ export class HUD {
     }
 
     public showVictory(): void {
-        const el = document.getElementById("victoryScreen");
-        if (el) el.style.display = "flex";
         this._dismissMenus();
+        MenuManager.showEndScreen("victoryScreen");
         document.body.classList.add("run-ended");
         document.exitPointerLock();
     }
 
     public showGameOver(): void {
-        const el = document.getElementById("gameOverScreen");
-        if (el) el.style.display = "flex";
         this._dismissMenus();
+        MenuManager.showEndScreen("gameOverScreen");
         document.body.classList.add("run-ended");
         document.exitPointerLock();
     }
