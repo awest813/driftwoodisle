@@ -23,18 +23,18 @@
             <p class="hero-blurb" id="heroBlurb">Cast ashore with nothing but salt in your boots and a stub of pencil. Forage, build, and live to write tomorrow's page.</p>
 
             <div id="menuButtons">
-                <button id="loadGame" class="menu-btn primary" disabled>
+                <button id="loadGame" class="menu-btn primary" type="button" disabled>
                     <span class="btn-label">Continue Journal</span>
                     <span class="btn-sub" id="continueSub">No saved entries</span>
                 </button>
-                <button id="startGame" class="menu-btn">
+                <button id="startGame" class="menu-btn" type="button">
                     <span class="btn-label">New Journal</span>
                     <span class="btn-sub">Wash ashore on a fresh isle</span>
                 </button>
                 <div class="menu-btn-row">
-                    <button id="openControls" class="menu-btn small">How to Play</button>
-                    <button id="openSettings" class="menu-btn small">Settings</button>
-                    <button id="openCredits" class="menu-btn small">Credits</button>
+                    <button id="openControls" class="menu-btn small" type="button">How to Play</button>
+                    <button id="openSettings" class="menu-btn small" type="button">Settings</button>
+                    <button id="openCredits" class="menu-btn small" type="button">Credits</button>
                 </div>
             </div>
 
@@ -72,62 +72,7 @@
                 </div>
             </div>
             <p class="settings-hint">Tip: stay warm at night by the campfire — exposure drops faster after sundown.</p>
-            <button id="closeControls" class="back-btn">Back</button>
-        </div>
-
-        <div id="settingsMenu" class="journal-page" style="display:none">
-            <h2>Settings</h2>
-            <div class="setting-row">
-                <label for="sensRange">Mouse Look</label>
-                <input type="range" id="sensRange" min="100" max="5000" value="2000">
-                <span id="sensValue" class="setting-value">2000</span>
-            </div>
-            <div class="setting-row">
-                <label for="volRange">Volume</label>
-                <input type="range" id="volRange" min="0" max="100" value="50">
-                <span id="volValue" class="setting-value">50%</span>
-            </div>
-            <div class="setting-row">
-                <label for="fogRange">Fog</label>
-                <input type="range" id="fogRange" min="0" max="10" value="5">
-                <span id="fogValue" class="setting-value">5</span>
-            </div>
-            <div class="setting-row">
-                <label for="ppToggle">High Quality</label>
-                <input type="checkbox" id="ppToggle">
-                <span id="qualityValue" class="setting-value">Low GPU</span>
-            </div>
-            <p class="settings-hint">High Quality renders at full resolution on HiDPI / Retina screens (GPU-intensive). Low GPU mode is recommended for integrated graphics and systems with 4 GB RAM or less.</p>
-
-            <h3 class="settings-subheader">Touch Controls</h3>
-            <div class="setting-row">
-                <label for="touchModeSelect">Mobile Controls</label>
-                <select id="touchModeSelect">
-                    <option value="auto">Auto-detect</option>
-                    <option value="on">Always On</option>
-                    <option value="off">Always Off</option>
-                </select>
-                <span id="touchModeValue" class="setting-value">Auto</span>
-            </div>
-            <div class="setting-row">
-                <label for="touchSensRange">Touch Sensitivity</label>
-                <input type="range" id="touchSensRange" min="1" max="10" value="5">
-                <span id="touchSensValue" class="setting-value">5</span>
-            </div>
-            <div class="setting-row">
-                <label for="invertYToggle">Invert Look Y</label>
-                <input type="checkbox" id="invertYToggle">
-                <span id="invertYValue" class="setting-value">Off</span>
-            </div>
-            <div class="setting-row">
-                <label for="leftHandedToggle">Left-Handed</label>
-                <input type="checkbox" id="leftHandedToggle">
-                <span id="leftHandedValue" class="setting-value">Off</span>
-            </div>
-            <p class="settings-hint">Auto-detect enables touch controls on phones and tablets. Left-Handed swaps the movement stick and look pad.</p>
-
-            <button id="audioPreviewBtn" class="back-btn small-btn">Test Audio</button>
-            <button id="closeSettings" class="back-btn">Back</button>
+            <button id="closeControls" class="back-btn" type="button">Back</button>
         </div>
 
         <div id="creditsMenu" class="journal-page" style="display:none">
@@ -136,7 +81,7 @@
             <p>Engine: Babylon.js</p>
             <p>Models: BabylonJS/Assets &mdash; Village Pack (CC-BY 4.0)</p>
             <p>Textures, sounds &amp; icons: procedural, made for Driftwood Isle</p>
-            <button id="closeCredits" class="back-btn">Back</button>
+            <button id="closeCredits" class="back-btn" type="button">Back</button>
         </div>
     </div>
     <canvas id="renderCanvas"></canvas>
@@ -193,9 +138,66 @@
         </div>
     </div>
 
-    <div id="craftingMenu" class="overlay">
+    <div id="settingsOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div id="settingsMenu" class="overlay-content journal-page settings-page">
+            <h2 id="settingsTitle">Settings</h2>
+            <div class="setting-row">
+                <label for="sensRange">Mouse Look</label>
+                <input type="range" id="sensRange" min="100" max="5000" value="2000">
+                <span id="sensValue" class="setting-value" aria-hidden="true">2000</span>
+            </div>
+            <div class="setting-row">
+                <label for="volRange">Volume</label>
+                <input type="range" id="volRange" min="0" max="100" value="50">
+                <span id="volValue" class="setting-value" aria-hidden="true">50%</span>
+            </div>
+            <div class="setting-row">
+                <label for="fogRange">Fog</label>
+                <input type="range" id="fogRange" min="0" max="10" value="5">
+                <span id="fogValue" class="setting-value" aria-hidden="true">5</span>
+            </div>
+            <div class="setting-row">
+                <label for="ppToggle">High Quality</label>
+                <input type="checkbox" id="ppToggle">
+                <span id="qualityValue" class="setting-value" aria-hidden="true">Low GPU</span>
+            </div>
+            <p class="settings-hint">High Quality renders at full resolution on HiDPI / Retina screens (GPU-intensive). Low GPU mode is recommended for integrated graphics and systems with 4 GB RAM or less.</p>
+
+            <h3 class="settings-subheader">Touch Controls</h3>
+            <div class="setting-row">
+                <label for="touchModeSelect">Mobile Controls</label>
+                <select id="touchModeSelect">
+                    <option value="auto">Auto-detect</option>
+                    <option value="on">Always On</option>
+                    <option value="off">Always Off</option>
+                </select>
+                <span id="touchModeValue" class="setting-value" aria-hidden="true">Auto</span>
+            </div>
+            <div class="setting-row">
+                <label for="touchSensRange">Touch Sensitivity</label>
+                <input type="range" id="touchSensRange" min="1" max="10" value="5">
+                <span id="touchSensValue" class="setting-value" aria-hidden="true">5</span>
+            </div>
+            <div class="setting-row">
+                <label for="invertYToggle">Invert Look Y</label>
+                <input type="checkbox" id="invertYToggle">
+                <span id="invertYValue" class="setting-value" aria-hidden="true">Off</span>
+            </div>
+            <div class="setting-row">
+                <label for="leftHandedToggle">Left-Handed</label>
+                <input type="checkbox" id="leftHandedToggle">
+                <span id="leftHandedValue" class="setting-value" aria-hidden="true">Off</span>
+            </div>
+            <p class="settings-hint">Auto-detect enables touch controls on phones and tablets. Left-Handed swaps the movement stick and look pad.</p>
+
+            <button id="audioPreviewBtn" class="back-btn small-btn" type="button">Test Audio</button>
+            <button id="closeSettings" class="back-btn" type="button">Back</button>
+        </div>
+    </div>
+
+    <div id="craftingMenu" class="overlay" role="dialog" aria-modal="true" aria-labelledby="craftingTitle">
         <div class="overlay-content journal-page inventory-page">
-            <h2>Backpack & Crafting</h2>
+            <h2 id="craftingTitle">Backpack & Crafting</h2>
             <div class="inventory-layout">
                 <div class="inventory-panel">
                     <h3>Backpack</h3>
@@ -210,19 +212,20 @@
                     </div>
                 </div>
             </div>
-            <button id="closeCrafting" class="back-btn">Close</button>
+            <button id="closeCrafting" class="back-btn" type="button">Close</button>
         </div>
     </div>
 
-    <div id="escMenu" class="overlay">
+    <div id="escMenu" class="overlay" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
         <div class="overlay-content journal-page pause-page">
-            <h2 class="pause-title">Paused</h2>
+            <h2 id="pauseTitle" class="pause-title">Paused</h2>
             <p class="pause-tagline">The isle waits. Take a breath.</p>
             <div class="pause-buttons">
-                <button id="resumeBtn" class="primary">Resume</button>
-                <button id="saveBtn">Save Game</button>
-                <button id="loadInGameBtn">Load Game</button>
-                <button id="exitBtn">Exit to Menu</button>
+                <button id="resumeBtn" class="primary" type="button">Resume</button>
+                <button id="saveBtn" type="button">Save Game</button>
+                <button id="loadInGameBtn" type="button">Load Game</button>
+                <button id="pauseSettingsBtn" type="button">Settings</button>
+                <button id="exitBtn" type="button">Exit to Menu</button>
             </div>
         </div>
     </div>
@@ -246,28 +249,36 @@
         </div>
     </div>
 
-    <div id="loadingScreen" class="overlay">
+    <div id="loadingScreen" class="overlay" role="dialog" aria-modal="true" aria-labelledby="loadingTitle" aria-busy="true">
         <div class="overlay-content journal-page loading-page">
-            <h2>Charting the Isle…</h2>
+            <h2 id="loadingTitle">Charting the Isle…</h2>
             <div class="loading-spinner" aria-hidden="true"></div>
-            <p id="loadingStatus" class="loading-status">Preparing the shore</p>
-            <div class="loading-bar-bg"><div id="loadingBar" class="loading-bar"></div></div>
+            <p id="loadingStatus" class="loading-status" aria-live="polite">Preparing the shore</p>
+            <div class="loading-bar-bg" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="loadingStatus">
+                <div id="loadingBar" class="loading-bar"></div>
+            </div>
         </div>
     </div>
 
-    <div id="victoryScreen" class="overlay">
-        <div class="overlay-content">
-            <h1>Island Escaped!</h1>
-            <p>You repaired the raft and sailed to safety.</p>
-            <button onclick="location.reload()">Return to Main Menu</button>
+    <div id="victoryScreen" class="overlay" role="dialog" aria-modal="true" aria-labelledby="victoryTitle">
+        <div class="overlay-content journal-page end-page victory-page">
+            <h2 id="victoryTitle" class="end-title">Island Escaped!</h2>
+            <p class="end-tagline">You repaired the raft and sailed to safety. The journal closes on a hopeful page.</p>
+            <button id="victoryRestartBtn" class="menu-btn primary end-btn" type="button">
+                <span class="btn-label">New Journal</span>
+                <span class="btn-sub">Begin another castaway tale</span>
+            </button>
         </div>
     </div>
 
-    <div id="gameOverScreen" class="overlay">
-        <div class="overlay-content">
-            <h1>You Perished</h1>
-            <p>The island was too harsh this time.</p>
-            <button onclick="location.reload()">Try Again</button>
+    <div id="gameOverScreen" class="overlay" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle">
+        <div class="overlay-content journal-page end-page defeat-page">
+            <h2 id="gameOverTitle" class="end-title">You Perished</h2>
+            <p class="end-tagline">The island was too harsh this time. Perhaps the tide will grant another chance.</p>
+            <button id="gameOverRestartBtn" class="menu-btn primary end-btn" type="button">
+                <span class="btn-label">Try Again</span>
+                <span class="btn-sub">Wash ashore once more</span>
+            </button>
         </div>
     </div>
 

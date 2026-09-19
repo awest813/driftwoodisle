@@ -4,6 +4,7 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
+import { MenuManager } from "../ui/MenuManager";
 
 export class Game {
     private _canvas: HTMLCanvasElement;
@@ -276,11 +277,11 @@ export class Game {
         const resumeBtn = document.getElementById("resumeBtn");
         const saveBtn = document.getElementById("saveBtn");
         const loadBtn = document.getElementById("loadInGameBtn");
+        const pauseSettingsBtn = document.getElementById("pauseSettingsBtn");
         const exitBtn = document.getElementById("exitBtn");
+        const escMenu = document.getElementById("escMenu");
 
-        if (resumeBtn) resumeBtn.onclick = () => {
-            this._resumeGameplay();
-        };
+        if (resumeBtn) resumeBtn.onclick = () => this._resumeGameplay();
         if (saveBtn) saveBtn.onclick = () => {
             import("../save/SaveSystem").then(({ SaveSystem }) => {
                 SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud, this._buildingSystem);
@@ -299,7 +300,18 @@ export class Game {
                 }
             });
         };
+        if (pauseSettingsBtn) pauseSettingsBtn.onclick = () => MenuManager.showSettings("pause");
         if (exitBtn) exitBtn.onclick = () => location.reload();
+        if (escMenu) {
+            escMenu.addEventListener("mousedown", (e) => {
+                if (e.target === escMenu) this._resumeGameplay();
+            });
+        }
+
+        const victoryBtn = document.getElementById("victoryRestartBtn");
+        const gameOverBtn = document.getElementById("gameOverRestartBtn");
+        if (victoryBtn) victoryBtn.onclick = () => location.reload();
+        if (gameOverBtn) gameOverBtn.onclick = () => location.reload();
     }
 
     public get scene(): Scene {
@@ -311,10 +323,8 @@ export class Game {
     }
 
     private _resumeGameplay(): void {
-        const escMenu = document.getElementById("escMenu");
-        const craftingMenu = document.getElementById("craftingMenu");
-        if (escMenu) escMenu.style.display = "none";
-        craftingMenu?.classList.remove("active");
+        MenuManager.hidePause();
+        document.getElementById("craftingMenu")?.classList.remove("active");
         this._requestGameplayPointerLock();
     }
 

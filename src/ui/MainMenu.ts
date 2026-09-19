@@ -1,6 +1,7 @@
 import { SaveSystem } from "../save/SaveSystem";
 import { SettingsManager } from "../save/SettingsManager";
 import { LoadingScreen } from "./LoadingScreen";
+import { MenuManager } from "./MenuManager";
 
 const HERO_BLURBS = [
     "Cast ashore with nothing but salt in your boots and a stub of pencil. Forage, build, and live to write tomorrow's page.",
@@ -32,9 +33,13 @@ export class MainMenu {
     private _setupKeyboard(): void {
         document.addEventListener("keydown", (e) => {
             if (!this._menuElement || this._menuElement.style.display === "none") return;
+            if (e.key === "Escape" && MenuManager.isSettingsOpen()) {
+                e.preventDefault();
+                this._closeSettings();
+                return;
+            }
             if (e.key === "Escape" && this._currentScreen !== "menuContent") {
                 e.preventDefault();
-                if (this._currentScreen === "settingsMenu") this._saveSettings();
                 this._showScreen("menuContent");
             }
         });
@@ -59,20 +64,35 @@ export class MainMenu {
             }
         }
 
-        if (settingsBtn) settingsBtn.onclick = () => this._showScreen("settingsMenu");
+        if (settingsBtn) settingsBtn.onclick = () => this._openSettings();
         if (creditsBtn) creditsBtn.onclick = () => this._showScreen("creditsMenu");
         if (controlsBtn) controlsBtn.onclick = () => this._showScreen("controlsMenu");
 
         // Back buttons
-        document.getElementById("closeSettings")!.onclick = () => {
-            this._saveSettings();
-            this._showScreen("menuContent");
-        };
+        document.getElementById("closeSettings")!.onclick = () => this._closeSettings();
+        document.getElementById("settingsOverlay")?.addEventListener("mousedown", (e) => {
+            if (e.target === e.currentTarget) this._closeSettings();
+        });
         document.getElementById("closeCredits")!.onclick = () => this._showScreen("menuContent");
         document.getElementById("closeControls")!.onclick = () => this._showScreen("menuContent");
 
         this._initSettingsUI();
         this._setupLiveSettings();
+    }
+
+    private _openSettings(): void {
+        document.getElementById("menuContent")!.style.display = "none";
+        MenuManager.showSettings("main");
+        this._currentScreen = "settingsMenu";
+    }
+
+    private _closeSettings(): void {
+        this._saveSettings();
+        const target = MenuManager.settingsReturnTarget;
+        MenuManager.hideSettings();
+        if (target === "main") {
+            this._showScreen("menuContent");
+        }
     }
 
     private _showScreen(id: string): void {

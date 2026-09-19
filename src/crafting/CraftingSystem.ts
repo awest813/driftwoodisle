@@ -10,6 +10,7 @@ import { ITEMS, CATEGORY_LABELS, CATEGORY_ORDER, itemDef } from "../inventory/It
 import type { ItemCategory } from "../inventory/ItemRegistry";
 import { consumeItem } from "../inventory/Consume";
 import { itemIconHtml } from "../ui/ItemIcon";
+import { MenuManager } from "../ui/MenuManager";
 
 export class CraftingSystem {
     private _inventory: Inventory;
@@ -50,14 +51,15 @@ export class CraftingSystem {
     private _setupInput(): void {
         window.addEventListener("keydown", (e) => {
             // Once the run has ended (victory/game over) the journal stays closed.
-            if (document.body.classList.contains("run-ended")) return;
+            if (MenuManager.isRunEnded()) return;
             if (e.code === "KeyE" || e.code === "Tab") {
                 e.preventDefault();
-                this._hidePauseMenu();
+                MenuManager.hidePause();
                 this.toggle();
             }
             if (e.code === "Escape" && this._isOpen) {
                 e.preventDefault();
+                e.stopPropagation();
                 this.close();
             }
         });
@@ -83,7 +85,7 @@ export class CraftingSystem {
     public open(): void {
         if (this._menuElement) {
             SoundManager.instance?.play("menu");
-            this._hidePauseMenu();
+            MenuManager.hidePause();
             this._menuElement.classList.add("active");
             this._isOpen = true;
             this._renderRecipes();
@@ -97,7 +99,7 @@ export class CraftingSystem {
             this._menuElement.classList.remove("active");
             this._isOpen = false;
             const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement | null;
-            if (!canvas || !this._canReturnToPointerLock()) return;
+            if (!canvas || !MenuManager.canRequestPointerLock()) return;
 
             canvas?.focus({ preventScroll: true });
             try {
@@ -109,24 +111,6 @@ export class CraftingSystem {
                 // Browsers may reject pointer lock when closing from a keyboard shortcut.
             }
         }
-    }
-
-    private _canReturnToPointerLock(): boolean {
-        const mainMenu = document.getElementById("mainMenu");
-        const escMenu = document.getElementById("escMenu");
-        const victoryMenu = document.getElementById("victoryScreen");
-        const gameOverMenu = document.getElementById("gameOverScreen");
-
-        const isMainMenuOpen = mainMenu ? mainMenu.style.display !== "none" : false;
-        const isPauseOpen = escMenu ? escMenu.style.display === "flex" : false;
-        const isGameOver = (victoryMenu?.style.display === "flex") || (gameOverMenu?.style.display === "flex");
-
-        return !isMainMenuOpen && !isPauseOpen && !isGameOver;
-    }
-
-    private _hidePauseMenu(): void {
-        const escMenu = document.getElementById("escMenu");
-        if (escMenu) escMenu.style.display = "none";
     }
 
     private _renderRecipes(): void {

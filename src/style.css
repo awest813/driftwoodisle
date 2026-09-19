@@ -169,16 +169,6 @@
     margin: 8px 0 0;
 }
 
-.controls-note {
-    text-align: left;
-    background: rgba(0,0,0,0.08);
-    padding: 14px 16px;
-    margin: 18px 0 0;
-    border: 1px dashed var(--leather);
-    font-size: 0.9rem;
-    line-height: 1.45;
-}
-
 #menuButtons {
     display: flex;
     flex-direction: column;
@@ -442,9 +432,11 @@
     color: var(--leather);
 }
 
-#settingsMenu {
+.settings-page {
     max-height: 88dvh;
     overflow-y: auto;
+    max-width: 600px;
+    text-align: center;
 }
 
 .setting-row select {
@@ -1166,9 +1158,36 @@ body.is-loading #fpsCounter {
 
 .overlay-content > * { position: relative; z-index: 1; }
 
-/* End-of-run status ribbon — replaces the harsh colored borders */
-#victoryScreen .overlay-content::after,
-#gameOverScreen .overlay-content::after {
+.end-page {
+    max-width: 480px;
+    padding: 48px 44px;
+}
+
+.end-title {
+    margin: 0;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    font-size: 1.9rem;
+    border-bottom: 2px solid var(--leather);
+    padding-bottom: 12px;
+}
+
+.end-tagline {
+    margin: 16px auto 28px;
+    max-width: 380px;
+    font-style: italic;
+    line-height: 1.5;
+    color: rgba(44,44,44,0.85);
+}
+
+.end-btn {
+    margin: 0 auto;
+    width: min(280px, 100%);
+}
+
+/* End-of-run status ribbon */
+.victory-page::after,
+.defeat-page::after {
     content: '';
     position: absolute;
     top: -15px;
@@ -1177,8 +1196,8 @@ body.is-loading #fpsCounter {
     height: 8px;
     z-index: 2;
 }
-#victoryScreen .overlay-content::after { background: #6b8e3a; }
-#gameOverScreen .overlay-content::after { background: #8b2a1f; }
+.victory-page::after { background: #6b8e3a; }
+.defeat-page::after { background: #8b2a1f; }
 
 #loadingScreen {
     background: rgba(0,0,0,0.78);
@@ -1329,6 +1348,15 @@ body.run-ended #mobileControls {
         width: min(250px, 100%);
         padding: 10px 24px;
         font-size: 1rem;
+    }
+
+    .end-title {
+        font-size: 1.45rem;
+        letter-spacing: 3px;
+    }
+
+    .end-page {
+        padding: 32px 24px;
     }
 
     #interactionPrompt {
@@ -1515,8 +1543,8 @@ body.run-ended #mobileControls {
         flex-direction: column;
     }
 
-    #controlsMenu .journal-page,
-    #settingsMenu,
+    #controlsMenu,
+    .settings-page,
     #creditsMenu {
         padding: 24px 18px;
     }

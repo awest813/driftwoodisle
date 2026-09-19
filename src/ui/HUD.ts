@@ -3,6 +3,7 @@ import { Inventory } from "../inventory/Inventory";
 import { ITEMS, HOTBAR_ORDER, itemDef } from "../inventory/ItemRegistry";
 import type { ResourceType } from "../inventory/ItemTypes";
 import { consumeItem } from "../inventory/Consume";
+import { MenuManager } from "./MenuManager";
 import { itemIconHtml, statIconHtml } from "./ItemIcon";
 
 const HOTBAR_SIZE = 9;
@@ -154,14 +155,7 @@ export class HUD {
     }
 
     private _isAnyMenuOpen(): boolean {
-        if (document.body.classList.contains("run-ended")) return true;
-        const crafting = document.getElementById("craftingMenu");
-        const esc = document.getElementById("escMenu");
-        const main = document.getElementById("mainMenu");
-        if (crafting?.classList.contains("active")) return true;
-        if (esc && esc.style.display === "flex") return true;
-        if (main && main.style.display !== "none") return true;
-        return false;
+        return MenuManager.isAnyMenuOpen();
     }
 
     private _useActiveSlot(): void {
@@ -324,8 +318,6 @@ export class HUD {
     }
 
     private _dismissMenus(): void {
-        const escMenu = document.getElementById("escMenu");
-        if (escMenu) escMenu.style.display = "none";
-        document.getElementById("craftingMenu")?.classList.remove("active");
+        MenuManager.dismissGameplayMenus();
     }
 }
