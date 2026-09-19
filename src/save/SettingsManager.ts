@@ -41,6 +41,22 @@ export class SettingsManager {
         this.apply();
     }
 
+    /** Persist whatever is currently in the settings form controls. */
+    public static saveFromForm(): void {
+        const touchMode = (document.getElementById("touchModeSelect") as HTMLSelectElement | null)?.value as
+            TouchControlsMode | undefined;
+        this.save({
+            sensitivity: parseInt((document.getElementById("sensRange") as HTMLInputElement).value),
+            volume: parseInt((document.getElementById("volRange") as HTMLInputElement).value),
+            fogDensity: parseInt((document.getElementById("fogRange") as HTMLInputElement).value),
+            postProcessing: (document.getElementById("ppToggle") as HTMLInputElement).checked,
+            touchControls: touchMode ?? "auto",
+            touchSensitivity: parseInt((document.getElementById("touchSensRange") as HTMLInputElement).value),
+            invertY: (document.getElementById("invertYToggle") as HTMLInputElement).checked,
+            leftHanded: (document.getElementById("leftHandedToggle") as HTMLInputElement).checked
+        });
+    }
+
     public static apply(): void {
         const game = (window as any).game;
         if (!game) return;
@@ -71,7 +87,6 @@ export class SettingsManager {
             mobile.applySettings(this._settings);
         }
 
-        console.log(`Settings applied: Sens=${this._settings.sensitivity}, Vol=${this._settings.volume}, Fog=${this._settings.fogDensity}, Touch=${this._settings.touchControls}`);
     }
 
     public static previewVolume(volume: number): void {

@@ -301,6 +301,14 @@
     background: var(--ink);
 }
 
+.menu-btn:focus-visible,
+.pause-buttons button:focus-visible,
+.back-btn:focus-visible,
+.craft-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
 .menu-btn.primary:hover:not(:disabled) {
     background: #6b3410;
 }
@@ -491,30 +499,43 @@ html, body {
 }
 
 #fpsCounter {
+    display: none;
     position: absolute;
     top: 60px;
     right: 10px;
-    color: #0f0;
-    font-family: 'Courier New', Courier, monospace;
+    color: var(--leather);
+    background: rgba(244, 236, 216, 0.92);
+    border: 2px solid var(--leather);
+    padding: 4px 8px;
+    font-family: var(--font-journal);
     font-weight: bold;
     pointer-events: none;
-    text-shadow: 1px 1px 2px #000;
+    font-size: 0.8rem;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+body.debug-fps #fpsCounter {
+    display: block;
 }
 
 #timeTempUI {
     position: absolute;
     top: 10px;
     right: 10px;
-    background: rgba(0,0,0,0.62);
-    padding: 10px 12px;
-    border: 2px solid #5a3c22;
+    background: var(--parchment);
+    padding: 10px 14px;
+    border: 2px solid var(--leather);
+    border-radius: 2px;
     font-family: var(--font-journal);
-    color: #e6d5c3;
-    font-size: 1.05rem;
+    color: var(--ink);
+    font-size: 1rem;
+    font-weight: bold;
+    letter-spacing: 1px;
     line-height: 1;
     pointer-events: none;
     text-align: right;
-    min-width: 230px;
+    min-width: 160px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
 #crosshair {
@@ -689,9 +710,9 @@ body.is-loading #fpsCounter {
 }
 
 @keyframes savedPulse {
-    0% { border-color: #5a3c22; box-shadow: none; }
-    30% { border-color: #9fc39a; box-shadow: 0 0 10px rgba(159, 195, 154, 0.6); }
-    100% { border-color: #5a3c22; box-shadow: none; }
+    0% { border-color: var(--leather); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+    30% { border-color: #6f8b46; box-shadow: 0 0 10px rgba(111, 139, 70, 0.45); }
+    100% { border-color: var(--leather); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
 }
 
 #compass {
@@ -795,11 +816,14 @@ body.is-loading #fpsCounter {
 
 #notifications {
     position: absolute;
-    top: 20px;
-    right: 20px;
+    top: 58px;
+    right: 10px;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    align-items: flex-end;
+    max-width: min(340px, calc(100vw - 24px));
+    pointer-events: none;
 }
 
 .notification {
@@ -858,33 +882,6 @@ body.is-loading #fpsCounter {
     0%   { transform: scale(1);    box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 0 0 var(--accent-color); }
     50%  { transform: scale(1.03); box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 0 4px rgba(255,255,255,0.0); }
     100% { transform: scale(1);    box-shadow: 0 6px 18px rgba(0,0,0,0.45), 0 0 0 0 var(--accent-color); }
-}
-
-#hotbar {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.hotbar-item {
-    background: var(--parchment);
-    border: 2px solid var(--leather);
-    padding: 8px 12px;
-    border-radius: 0;
-    color: var(--ink);
-    font-family: var(--font-journal);
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 4px 4px 0px var(--leather);
-}
-
-.icon {
-    width: 32px;
-    height: 32px;
-    display: inline-block;
 }
 
 /* Shared SVG sprite icons (see /public/game-icons.svg) */
@@ -1381,6 +1378,16 @@ body.run-ended #mobileControls {
     box-shadow: 0 6px 18px rgba(0,0,0,0.45), inset 0 0 24px rgba(74, 55, 40, 0.08);
     z-index: 1000;
     font-family: var(--font-journal);
+    pointer-events: auto;
+}
+
+.hotbar-slot {
+    cursor: pointer;
+}
+
+.hotbar-slot:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
 .hotbar-slot {
@@ -2244,5 +2251,13 @@ body.mobile-active #interactionPrompt[style*="opacity: 1"] {
 
     body.mobile-active #interactionPrompt {
         bottom: calc(245px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
 }

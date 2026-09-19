@@ -23,6 +23,7 @@ export class MainMenu {
         this._onStart = onStart;
         MainMenu._instance = this;
 
+        MenuManager.setSettingsCloseHandler((save) => this._closeSettings(save));
         this._setupButtons();
         this._setupHero();
         this._setupKeyboard();
@@ -36,17 +37,24 @@ export class MainMenu {
 
     public static refreshSavePreview(): void {
         const loadBtn = document.getElementById("loadGame") as HTMLButtonElement | null;
+        const pauseLoadBtn = document.getElementById("loadInGameBtn") as HTMLButtonElement | null;
         const continueSub = document.getElementById("continueSub");
-        if (!loadBtn) return;
-
+        const hasSave = SaveSystem.hasSave();
         const preview = SaveSystem.getSavePreview();
-        if (preview && SaveSystem.hasSave()) {
-            loadBtn.disabled = false;
+
+        if (loadBtn) {
+            loadBtn.disabled = !hasSave;
             loadBtn.onclick = () => MainMenu._instance?._start(true);
-            if (continueSub) continueSub.textContent = `Day ${preview.day} · resume your journal`;
-        } else {
-            loadBtn.disabled = true;
-            if (continueSub) continueSub.textContent = "No saved entries";
+            if (continueSub) {
+                continueSub.textContent = preview
+                    ? `Day ${preview.day} · resume your journal`
+                    : "No saved entries";
+            }
+        }
+
+        if (pauseLoadBtn) {
+            pauseLoadBtn.disabled = !hasSave;
+            pauseLoadBtn.title = hasSave ? "Resume your saved journal" : "No journal entries found";
         }
     }
 
@@ -84,22 +92,13 @@ export class MainMenu {
 
     private _setupButtons(): void {
         const startBtn = document.getElementById("startGame");
-        const loadBtn = document.getElementById("loadGame") as HTMLButtonElement;
         const settingsBtn = document.getElementById("openSettings");
         const creditsBtn = document.getElementById("openCredits");
         const controlsBtn = document.getElementById("openControls");
-        const continueSub = document.getElementById("continueSub");
 
         if (startBtn) startBtn.onclick = () => this._start(false);
 
-        if (loadBtn) {
-            const preview = SaveSystem.getSavePreview();
-            if (preview) {
-                loadBtn.disabled = false;
-                loadBtn.onclick = () => this._start(true);
-                if (continueSub) continueSub.textContent = `Day ${preview.day} · resume your journal`;
-            }
-        }
+        MainMenu.refreshSavePreview();
 
         if (settingsBtn) settingsBtn.onclick = () => this._openSettings();
         if (creditsBtn) creditsBtn.onclick = () => this._showScreen("creditsMenu");
@@ -123,8 +122,8 @@ export class MainMenu {
         this._currentScreen = "settingsMenu";
     }
 
-    private _closeSettings(): void {
-        this._saveSettings();
+    private _closeSettings(save = true): void {
+        if (save) this._saveSettings();
         const target = MenuManager.settingsReturnTarget;
         MenuManager.hideSettings();
         if (target === "main") {
@@ -203,31 +202,27 @@ export class MainMenu {
         const leftHandedToggle = document.getElementById("leftHandedToggle") as HTMLInputElement;
 
         document.getElementById("sensValue")!.innerText = sensRange.value;
+        sensRange.setAttribute("aria-valuetext", sensRange.value);
         document.getElementById("volValue")!.innerText = `${volRange.value}%`;
+        volRange.setAttribute("aria-valuetext", `${volRange.value}%`);
         document.getElementById("fogValue")!.innerText = `${fogRange.value}/10`;
+        fogRange.setAttribute("aria-valuetext", `${fogRange.value} of 10`);
         document.getElementById("qualityValue")!.innerText = ppToggle.checked ? "High" : "Low GPU";
 
         const touchLabel = touchModeSelect.value === "auto" ? "Auto" :
                            touchModeSelect.value === "on" ? "On" : "Off";
         document.getElementById("touchModeValue")!.innerText = touchLabel;
+        touchModeSelect.setAttribute("aria-valuetext", touchLabel);
         document.getElementById("touchSensValue")!.innerText = touchSensRange.value;
+        touchSensRange.setAttribute("aria-valuetext", touchSensRange.value);
         document.getElementById("invertYValue")!.innerText = invertYToggle.checked ? "On" : "Off";
+        invertYToggle.setAttribute("aria-valuetext", invertYToggle.checked ? "On" : "Off");
         document.getElementById("leftHandedValue")!.innerText = leftHandedToggle.checked ? "On" : "Off";
+        leftHandedToggle.setAttribute("aria-valuetext", leftHandedToggle.checked ? "On" : "Off");
     }
 
     private _saveSettings(): void {
-        const touchMode = (document.getElementById("touchModeSelect") as HTMLSelectElement).value as
-            "auto" | "on" | "off";
-        SettingsManager.save({
-            sensitivity: parseInt((document.getElementById("sensRange") as HTMLInputElement).value),
-            volume: parseInt((document.getElementById("volRange") as HTMLInputElement).value),
-            fogDensity: parseInt((document.getElementById("fogRange") as HTMLInputElement).value),
-            postProcessing: (document.getElementById("ppToggle") as HTMLInputElement).checked,
-            touchControls: touchMode,
-            touchSensitivity: parseInt((document.getElementById("touchSensRange") as HTMLInputElement).value),
-            invertY: (document.getElementById("invertYToggle") as HTMLInputElement).checked,
-            leftHanded: (document.getElementById("leftHandedToggle") as HTMLInputElement).checked
-        });
+        SettingsManager.saveFromForm();
     }
 
     private async _start(isLoad: boolean): Promise<void> {

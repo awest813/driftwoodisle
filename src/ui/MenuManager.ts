@@ -7,6 +7,7 @@ const FOCUSABLE = 'button:not(:disabled), [href], input:not(:disabled), select:n
 /** Central visibility and input routing for all blocking overlays. */
 export class MenuManager {
     private static _settingsReturn: SettingsReturnTarget = null;
+    private static _settingsCloseHandler: ((save: boolean) => void) | null = null;
     private static _trapContainer: HTMLElement | null = null;
     private static _trapHandler: ((e: KeyboardEvent) => void) | null = null;
     private static _previousFocus: HTMLElement | null = null;
@@ -87,9 +88,17 @@ export class MenuManager {
         if (this._trapContainer === el) this.deactivateFocusTrap();
     }
 
+    static setSettingsCloseHandler(handler: (save: boolean) => void): void {
+        this._settingsCloseHandler = handler;
+    }
+
+    static requestCloseSettings(save = true): void {
+        this._settingsCloseHandler?.(save);
+    }
+
     static togglePause(): void {
         if (this.isSettingsOpen()) {
-            this.hideSettings();
+            this.requestCloseSettings(true);
             return;
         }
         if (this.isCraftingOpen()) return;

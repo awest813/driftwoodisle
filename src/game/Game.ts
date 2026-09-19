@@ -6,6 +6,7 @@ import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { MenuManager } from "../ui/MenuManager";
 import { MainMenu } from "../ui/MainMenu";
+import { LoadingScreen } from "../ui/LoadingScreen";
 
 export class Game {
     private _canvas: HTMLCanvasElement;
@@ -119,8 +120,6 @@ export class Game {
         if (this._isStarting || this._playerController) return;
         this._isStarting = true;
         try {
-            const { LoadingScreen } = await import("../ui/LoadingScreen");
-
             // Wait for the world to finish generating so player doesn't fall
             await LoadingScreen.step("Shaping the island terrain", 0.18, async () => {
                 await this._worldPromise;
@@ -149,7 +148,7 @@ export class Game {
                 await LoadingScreen.step("Reading the old journal", 0.82, () => {
                     SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud, this._buildingSystem);
                 });
-                this._hud.showNotification("Game Loaded");
+                this._hud.showNotification("Journal recovered.");
             }
 
             const { SettingsManager } = await import("../save/SettingsManager");
@@ -286,7 +285,7 @@ export class Game {
         if (saveBtn) saveBtn.onclick = () => {
             import("../save/SaveSystem").then(({ SaveSystem }) => {
                 SaveSystem.save(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud, this._buildingSystem);
-                this._hud.showNotification("Game Saved manually.");
+                this._hud.showNotification("Journal saved.");
                 this._resumeGameplay();
             });
         };
@@ -294,13 +293,14 @@ export class Game {
             import("../save/SaveSystem").then(({ SaveSystem }) => {
                 if (SaveSystem.hasSave()) {
                     SaveSystem.load(this._inventory, this._stats, this._dayNight, this._playerController.camera, this._hud, this._buildingSystem);
-                    this._hud.showNotification("Game Loaded manually.");
+                    this._hud.showNotification("Journal recovered.");
                     this._resumeGameplay();
                 } else {
-                    this._hud.showNotification("No save found.");
+                    this._hud.showNotification("No journal entries found.");
                 }
             });
         };
+        MainMenu.refreshSavePreview();
         if (pauseSettingsBtn) pauseSettingsBtn.onclick = () => MenuManager.showSettings("pause");
         if (exitBtn) exitBtn.onclick = () => this.returnToMainMenu();
         if (escMenu) {
@@ -373,6 +373,18 @@ export class Game {
         if (day) day.textContent = "1";
         const clock = document.getElementById("timeClock");
         if (clock) clock.textContent = "08:00";
+        const wIcon = document.getElementById("warmthIcon");
+        if (wIcon) {
+            wIcon.innerHTML = `<svg class="item-icon stat-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-stat-warmth"></use></svg>`;
+        }
+        document.querySelectorAll(".hotbar-slot").forEach((slot) => {
+            slot.querySelector(".slot-icon")?.remove();
+            const qty = slot.querySelector(".slot-qty");
+            if (qty) qty.textContent = "";
+            (slot as HTMLElement).removeAttribute("data-item");
+            (slot as HTMLElement).removeAttribute("title");
+            (slot as HTMLElement).setAttribute("aria-label", `Empty slot ${(slot as HTMLElement).id.replace("slot-", "")}`);
+        });
     }
 
     public get scene(): Scene {

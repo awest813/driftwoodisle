@@ -87,11 +87,11 @@
     <canvas id="renderCanvas"></canvas>
     <div id="damageVignette" aria-hidden="true"></div>
     <div id="crosshair"></div>
-    <div id="interactionPrompt"></div>
+    <div id="interactionPrompt" role="status" aria-live="polite" aria-atomic="true"></div>
     
     <div id="hud">
         <div id="timeTempUI">
-            Day <span id="dayCount">1</span> | <span id="timeClock">08:00</span> | Temp: <span id="tempDisplay">37</span>°C
+            Day <span id="dayCount">1</span> · <span id="timeClock">08:00</span>
         </div>
         <div id="compass">
             <span id="compass-text">N (0°)</span>
@@ -100,31 +100,31 @@
         <div class="stats-container">
             <div class="stat-row">
                 <span class="stat-icon"><svg class="item-icon stat-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-stat-health"></use></svg></span>
-                <div class="stat-bar-bg"><div id="healthBar" class="stat-bar health"></div></div>
+                <div class="stat-bar-bg" role="progressbar" aria-label="Health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="healthBar" class="stat-bar health"></div></div>
                 <span id="healthVal" class="stat-val">100</span>
             </div>
             <div class="stat-row">
                 <span class="stat-icon"><svg class="item-icon stat-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-stat-hunger"></use></svg></span>
-                <div class="stat-bar-bg"><div id="hungerBar" class="stat-bar hunger"></div></div>
+                <div class="stat-bar-bg" role="progressbar" aria-label="Hunger" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="hungerBar" class="stat-bar hunger"></div></div>
                 <span id="hungerVal" class="stat-val">100</span>
             </div>
             <div class="stat-row">
                 <span class="stat-icon"><svg class="item-icon stat-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-stat-thirst"></use></svg></span>
-                <div class="stat-bar-bg"><div id="thirstBar" class="stat-bar thirst"></div></div>
+                <div class="stat-bar-bg" role="progressbar" aria-label="Thirst" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="thirstBar" class="stat-bar thirst"></div></div>
                 <span id="thirstVal" class="stat-val">100</span>
             </div>
             <div class="stat-row">
                 <span class="stat-icon"><svg class="item-icon stat-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-stat-stamina"></use></svg></span>
-                <div class="stat-bar-bg"><div id="staminaBar" class="stat-bar stamina"></div></div>
+                <div class="stat-bar-bg" role="progressbar" aria-label="Stamina" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="staminaBar" class="stat-bar stamina"></div></div>
                 <span id="staminaVal" class="stat-val">100</span>
             </div>
             <div class="stat-row">
                 <span class="stat-icon" id="warmthIcon"><svg class="item-icon stat-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-stat-warmth"></use></svg></span>
-                <div class="stat-bar-bg"><div id="warmthBar" class="stat-bar warmth"></div></div>
+                <div class="stat-bar-bg" role="progressbar" aria-label="Warmth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="warmthBar" class="stat-bar warmth"></div></div>
                 <span id="warmthVal" class="stat-val">100</span>
             </div>
         </div>
-        <div id="notifications"></div>
+        <div id="notifications" role="status" aria-live="polite" aria-atomic="false"></div>
         <div id="hotbar" class="journal-hotbar" role="toolbar" aria-label="Quick items">
             <div class="hotbar-slot active" id="slot-1" role="button" aria-label="Slot 1" tabindex="-1"><span class="slot-number" aria-hidden="true">1</span><span class="slot-qty" aria-hidden="true"></span></div>
             <div class="hotbar-slot" id="slot-2" role="button" aria-label="Slot 2" tabindex="-1"><span class="slot-number" aria-hidden="true">2</span><span class="slot-qty" aria-hidden="true"></span></div>
@@ -230,7 +230,7 @@
         </div>
     </div>
 
-    <div id="mobileControls" aria-hidden="true">
+    <div id="mobileControls">
         <div id="mc-top">
             <button id="mc-btn-pause" class="mc-icon-btn" type="button" aria-label="Pause"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-ui-pause"></use></svg></button>
             <button id="mc-btn-inventory" class="mc-icon-btn" type="button" aria-label="Inventory"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="/game-icons.svg#icon-ui-inventory"></use></svg></button>
@@ -253,7 +253,7 @@
         <div class="overlay-content journal-page loading-page">
             <h2 id="loadingTitle">Charting the Isle…</h2>
             <div class="loading-spinner" aria-hidden="true"></div>
-            <p id="loadingStatus" class="loading-status" aria-live="polite">Preparing the shore</p>
+            <p id="loadingStatus" class="loading-status" aria-live="polite">Charting the shore</p>
             <div class="loading-bar-bg" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="loadingStatus">
                 <div id="loadingBar" class="loading-bar"></div>
             </div>
